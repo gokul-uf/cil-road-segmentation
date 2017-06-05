@@ -7,7 +7,10 @@
 - [SEMANTIC SEGMENTATION OF AERIAL IMAGES WITH AN ENSEMBLE OF CNNS](https://www.ethz.ch/content/dam/ethz/special-interest/baug/igp/photogrammetry-remote-sensing-dam/documents/pdf/marmanis-isprs16.pdf)
 - [Learning to Detect Roads in High-Resolution Aerial Images](http://www.cs.toronto.edu/~fritz/absps/road_detection.pdf)
 - [CycleGAN](https://junyanz.github.io/CycleGAN/)
-
+- [Fully Convolutional Networks for Semantic Segmentation (CVPR)](https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)
+- [SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation (2016)](https://arxiv.org/pdf/1511.00561.pdf)
 
 ## Possible extra datasets
 - [Road and Building Detection Datasets](https://www.cs.toronto.edu/~vmnih/data/)
+- [Maps dataset from pix2pix work](https://people.eecs.berkeley.edu/~tinghuiz/projects/pix2pix/datasets/)
+- [Maps dataset from CycleGAN work](https://people.eecs.berkeley.edu/~taesung_park/CycleGAN/datasets/)
