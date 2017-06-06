@@ -9,6 +9,10 @@
 - [CycleGAN](https://junyanz.github.io/CycleGAN/)
 - [Fully Convolutional Networks for Semantic Segmentation (CVPR)](https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf)
 - [SegNet: A Deep Convolutional Encoder-Decoder Architecture for Image Segmentation (2016)](https://arxiv.org/pdf/1511.00561.pdf)
+- [Kaggle Satellite Image Segmentation Competition]
+(https://deepsense.io/deep-learning-for-satellite-imagery-via-image-segmentation/)
+(http://blog.kaggle.com/2017/04/26/dstl-satellite-imagery-competition-1st-place-winners-interview-kyle-lee/?utm_source=Mailing%20list&utm_campaign=f1be30eedd-Kaggle_Newsletter_05-04-2017&utm_medium=email&utm_term=0_f42f9df1e1-f1be30eedd-400419961)
+
 
 ## Possible extra datasets
 - [Road and Building Detection Datasets](https://www.cs.toronto.edu/~vmnih/data/)
