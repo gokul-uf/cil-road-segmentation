@@ -29,5 +29,6 @@ c. Mnih dataset (if we figure out how to remove the white patches in some of the
 2. Decide on the input size of the image (next step depends on this)
 3. Get the distance map (see the loss function part of the paper)
 4. If we're using the pix2pix dataset, how to convert google map images to road segmentation maps (white for road, black for non-road)
+5. Get the deconv according to the paper efficiently (use the conv2d_transpose and upsample right now)
 
 After the above, we will be able to run the network and get numbers
