@@ -18,3 +18,16 @@
 - [Road and Building Detection Datasets](https://www.cs.toronto.edu/~vmnih/data/)
 - [Maps dataset from pix2pix work](https://people.eecs.berkeley.edu/~tinghuiz/projects/pix2pix/datasets/)
 - [Maps dataset from CycleGAN work](https://people.eecs.berkeley.edu/~taesung_park/CycleGAN/datasets/)
+- [Vlodmir Mnih Dataset](https://www.cs.toronto.edu/~vmnih/data/)
+
+## TODO / Next Step
+1. Fix the dataset
+options
+a. pix2pix dataset + rotation
+b. CIL dataset + rotation
+c. Mnih dataset (if we figure out how to remove the white patches in some of the images)
+2. Decide on the input size of the image (next step depends on this)
+3. Get the distance map (see the loss function part of the paper)
+4. If we're using the pix2pix dataset, how to convert google map images to road segmentation maps (white for road, black for non-road)
+
+After the above, we will be able to run the network and get numbers
