@@ -16,15 +16,10 @@ class vgg16:
 
     def load_weights(self, weight_file, sess):
         weights = np.load(weight_file)
-        keys = sorted(weights.keys())
+        
+        keys = sorted(weights)
 
-        for i, k in enumerate(keys):
-            if(k=='conv1_1_W'):
-                new_weights = np.zeros((3, 3, 4, 64))
-                new_weights[:,:,3] = np.zeros((1, 64))
-                print(i, k, np.shape(weights[k]))
-                sess.run(self.parameters[i].assign(new_weights))
-                continue
+        for i, k in enumerate(keys):  
             print(i, k, np.shape(weights[k]))
             sess.run(self.parameters[i].assign(weights[k]))
 
@@ -76,7 +71,7 @@ class vgg16:
 
             images = self.preprocess(imgs,name='preprocess')
 
-            conv1_1 = self.conv2d(input = images,  filter_shape = [3, 3, 4,   64],  name = "conv1_1")
+            conv1_1 = self.conv2d(input = images,  filter_shape = [3, 3, 3,   64],  name = "conv1_1")
             conv1_2 = self.conv2d(input = conv1_1, filter_shape = [3, 3, 64,  64],  name = "conv1_2")
             pool1 = self.max_pool(input = conv1_2, name = "pool1")
 
@@ -99,22 +94,21 @@ class vgg16:
             conv5_3 = self.conv2d(input = conv5_2, filter_shape = [3, 3, 512, 512], name = "conv5_3")
             pool5 = self.max_pool(input = conv5_3, name = "pool5")
 
-            '''
             fc1 = self.fc_layer(input = pool5, shape=[None, 4096], name = "fc1", init=True)
             fc2 = self.fc_layer(input = fc1,   shape=[4096, 4096], name = "fc2")
             fc3 = self.fc_layer(input = fc2,   shape=[4096, 1000], name = "fc3", end=True)
-            '''
-
-            return pool5
+            
+            # return pool5
+            return fc3
 
 #    def decoder(self, )
 
 if __name__ == '__main__':
     sess = tf.Session()
     imgs = tf.placeholder(tf.float32, [None, 224, 224, 3])
-    vgg = vgg16(imgs, 'DeepMatting/vgg16_weights.npz', sess)
+    vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
 
-    img1 = misc.imread('DeepMatting/face.jpg', mode='RGB') # example of image
+    img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
     img1 = misc.imresize(img1, (224, 224))
 
     prob = sess.run(vgg.probs, feed_dict={vgg.imgs: [img1]})[0]
