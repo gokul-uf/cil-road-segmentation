@@ -51,7 +51,7 @@ class rsrcnn:
 			return tf.nn.conv2d_transpose(input, filter, output_shape, strides, pad, name)
 
 	# no padding in deconv layer
-	def deconv2d_custom(self, inp_tensor, filter, stride = 3, pad = 'VALID', name = None):
+	def deconv2d_custom(self, inp_tensor, filter, stride = 3, name = None):
 
 		with tf.variable_scope(name) as scope:
 
