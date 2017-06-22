@@ -7,7 +7,7 @@ import sys
 
 class rsrcnn:
 
-	def __init__(self, imgs=None, weights=None, sess=None):
+	def __init__(self, imgs=None, groundtruths=None, distances=None, weights=None, sess=None):
 
 		if imgs is None:
 
@@ -15,6 +15,9 @@ class rsrcnn:
 			return
 
 		self.imgs = imgs
+        self.groundtruths = groundtruths
+        self.distances = tf.placeholder(tf.float32, [None, 200, 200])
+        self.diatances_max = tf.placeholder(tf.float32, [None])
 		self.conv = {}
 		self.pool = {}
 		self.fc   = {}
@@ -162,7 +165,35 @@ class rsrcnn:
 				self.fc[name] = tf.nn.relu(fcl)
 			self.parameters += [fcw, fcb]
 		return self.fc[name]
+    
+    def load_distance(path):
+    for file in listdir(path):
+        distance_image = ndimage.imread(path + file, mode = 'L')
+        distance = tf.pack(distance_image)
+        distances_max.concat(tf.reduce_max(distance))
+        distances.concat(distance, 0)
+    
+    def f_function(image_index, name = None):
+        
+        f_i = distances[image_index]
+        #f_i[f_i == 0] = 0
+        #f_i[f_i > 0 and f_i < distance_threshold_T] = f_i / distances_max[image_index]
+        #f_i[f_i > distance_threshold_T] = distance_threshold_T / distances_max[image_index]
 
+        comparison0 = tf.logical_and(tf.greater(f_i, tf.constant(0)), tf.less_equal(f_i, tf.constant(distance_threshold_T))) 
+        value0 = tf.div(f_i, tf.constant(distances_max[image_index]))
+        f_i.assign(tf.where(comparison0, value0, tf.zeros_like(f_i)))
+        comparison1 = tf.greater(f_i, tf.constant(distance_threshold_T))
+        value1 = tf.div(tf.constant(distance_threshold_T), tf.constant(distances_max[image_index]))
+        f_i.assign(tf.where(comparison1, value1, tf.zeros_like(f_i)))
+
+        return f_i   
+    
+    # Pass the groundtruth tf, image_index for distances 
+    def overall_cost(groundtruth, ):
+        a = tf.log(fc_layer_output)
+        return groundtruth * tf.log(tf.sigmoid(a) + tf.exp(-f_function(image_index)) * (1 - groundtruth) * tf.log(1 - a)                               
+            
 
 	def build_model(self, imgs, name, reuse = False):
 		#print("In build_model")
@@ -242,13 +273,17 @@ def test_deconv2d_custom():
 	filter = tf.constant([[1,1,1,1],[2,2,2,2],[3,3,3,3],[4,4,4,4]], dtype="float32")
 
 	model.deconv2d_custom(inp_tensor, filter, name="deconv")
+    
+
 
 if __name__ == '__main__':
 
 	sess = tf.Session()
 	imgs = tf.placeholder(tf.float32, [None, 375, 375, 3])
-	model = rsrcnn(imgs, 'vgg16_weights.npz', sess)
-
+    groundtruths = tf.placeholder(tf.float32, [None, 375, 375, 3])
+	model = rsrcnn(imgs, groundtruths, distances 'vgg16_weights.npz', sess)
+    model.load_distance("./data/generate/patches_rotation/distances") 
+    
 	img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
 	img1 = misc.imresize(img1, (224, 224))
 
