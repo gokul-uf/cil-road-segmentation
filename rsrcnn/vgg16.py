@@ -7,7 +7,7 @@ import sys
 
 class rsrcnn:
 
-	def __init__(self, imgs=None, groundtruths=None, distances=None, weights=None, sess=None):
+	def __init__(self, imgs=None, groundtruths=None, weights=None, sess=None):
 
 		if imgs is None:
 
@@ -15,9 +15,9 @@ class rsrcnn:
 			return
 
 		self.imgs = imgs
-        self.groundtruths = groundtruths
-        self.distances = tf.placeholder(tf.float32, [None, 200, 200])
-        self.diatances_max = tf.placeholder(tf.float32, [None])
+		self.groundtruths = groundtruths
+		self.distances = tf.placeholder(tf.float32, [None, 200, 200])
+		self.diatances_max = tf.placeholder(tf.float32, [None])
 		self.conv = {}
 		self.pool = {}
 		self.fc   = {}
@@ -54,38 +54,48 @@ class rsrcnn:
 			return tf.nn.conv2d_transpose(input, filter, output_shape, strides, pad, name)
 
 	# no padding in deconv layer
-	def deconv2d_custom(self, inp_tensor, filter, stride = 3, name = None):
+	# filter_shape => [batch, row, col]
+	# input_shape  => [batch, row, col]
+	def deconv2d_custom(self, inp_tensor, filter_shape, stride = 3, name = None, stddev=1e-1):
 
-		with tf.variable_scope(name) as scope:
+		with tf.variable_scope(name, reuse=True) as scope:
 
 			input_shape = inp_tensor.get_shape()
-			# print("Input shape")
-			# print(input_shape)
+			num_batches = input_shape[0]
+			input_rows  = input_shape[1]
+			input_cols  = input_shape[2]
 
+			fil_rows = filter_shape[0]
+			fil_cols = filter_shape[1]
 
-			filter_shape = filter.get_shape()
-			# print("Filter shape")
-			# print(filter_shape)
+			filter = tf.get_variable( initializer=tf.truncated_normal(filter_shape, 
+									dtype=tf.float32, 
+									stddev=stddev),
+									name='deconv_weights')
 
-			output_rows = (input_shape[0]-1)*stride + filter_shape[0]
-			# print("Output rows")
-			# print(output_rows)
+			#filter = tf.constant([[1,1,1,1],[2,2,2,2],[3,3,3,3],[4,4,4,4]], dtype="float32")
 
-			output = tf.zeros([output_rows, output_rows], dtype="float32")
+			output_rows = (input_rows-1)*stride + fil_rows
+
+			output = tf.zeros([num_batches, output_rows, output_rows], dtype="float32")
 			
 			row_num = 0
 
 			# same number of rows and columns in input
-			for i in range(0, input_shape[0]):
+			for i in range(0, input_rows):
 
 				col_num = 0
 
-				for j in range(0, input_shape[0]):
+				for j in range(0, input_cols):
 
-					cur_input_conv = tf.multiply(filter, inp_tensor[i][j])
-					#print(cur_input_conv.eval())
+					r_fil = tf.reshape( filter, [1, -1] )
+					r_inp = tf.reshape( inp_tensor[:, i, j], [-1, 1] )
 
-					padded_out = self.pad_zeroes(cur_input_conv, row_num*stride, col_num*stride, filter_shape[0], output_rows)
+					cur_inps_conv = tf.matmul(r_inp, r_fil)
+					cur_inps_conv = tf.reshape( cur_inps_conv, [-1, fil_rows, fil_cols] )
+					#print(cur_inps_conv.eval())
+
+					padded_out = self.pad_zeroes(cur_inps_conv, row_num*stride, col_num*stride, fil_rows, output_rows)
 					col_num += 1
 
 					output = output + padded_out
@@ -95,7 +105,9 @@ class rsrcnn:
 
 				row_num += 1
 
-	# paddings => [[top, bottom], [left, right]]
+		return output
+
+	# paddings => [[inside, outside], [top, bottom], [left, right]]
 	def pad_zeroes(self, tensor, row_pos, col_pos, tensor_dim, output_dim):
 
 		# print("dimensions")
@@ -111,9 +123,9 @@ class rsrcnn:
 		# print(dim_row.eval())
 		# print(dim_col.eval())
 
-		paddings = tf.Variable([ [row_pos, bottom_pad], [col_pos, right_pad] ], dtype=tf.int32)
+		paddings = tf.Variable([ [0, 0], [row_pos, bottom_pad], [col_pos, right_pad] ], dtype=tf.int32, name="paddings")
 
-		#self.sess.run(tf.global_variables_initializer())
+		self.sess.run(tf.global_variables_initializer())
 
 		padded_out = tf.pad(tensor, paddings, "CONSTANT")
 
@@ -165,35 +177,34 @@ class rsrcnn:
 				self.fc[name] = tf.nn.relu(fcl)
 			self.parameters += [fcw, fcb]
 		return self.fc[name]
-    
-    def load_distance(path):
-    for file in listdir(path):
-        distance_image = ndimage.imread(path + file, mode = 'L')
-        distance = tf.pack(distance_image)
-        distances_max.concat(tf.reduce_max(distance))
-        distances.concat(distance, 0)
-    
-    def f_function(image_index, name = None):
-        
-        f_i = distances[image_index]
-        #f_i[f_i == 0] = 0
-        #f_i[f_i > 0 and f_i < distance_threshold_T] = f_i / distances_max[image_index]
-        #f_i[f_i > distance_threshold_T] = distance_threshold_T / distances_max[image_index]
+	
+	def load_distance(self, path):
+		for file in listdir(path):
+			distance_image = ndimage.imread(path + file, mode = 'L')
+			distance = tf.pack(distance_image)
+			distances_max.concat(tf.reduce_max(distance))
+			distances.concat(distance, 0)
+	
+	def f_function(self, image_index, name = None):
+		
+		f_i = distances[image_index]
+		#f_i[f_i == 0] = 0
+		#f_i[f_i > 0 and f_i < distance_threshold_T] = f_i / distances_max[image_index]
+		#f_i[f_i > distance_threshold_T] = distance_threshold_T / distances_max[image_index]
 
-        comparison0 = tf.logical_and(tf.greater(f_i, tf.constant(0)), tf.less_equal(f_i, tf.constant(distance_threshold_T))) 
-        value0 = tf.div(f_i, tf.constant(distances_max[image_index]))
-        f_i.assign(tf.where(comparison0, value0, tf.zeros_like(f_i)))
-        comparison1 = tf.greater(f_i, tf.constant(distance_threshold_T))
-        value1 = tf.div(tf.constant(distance_threshold_T), tf.constant(distances_max[image_index]))
-        f_i.assign(tf.where(comparison1, value1, tf.zeros_like(f_i)))
+		comparison0 = tf.logical_and(tf.greater(f_i, tf.constant(0)), tf.less_equal(f_i, tf.constant(distance_threshold_T))) 
+		value0 = tf.div(f_i, tf.constant(distances_max[image_index]))
+		f_i.assign(tf.where(comparison0, value0, tf.zeros_like(f_i)))
+		comparison1 = tf.greater(f_i, tf.constant(distance_threshold_T))
+		value1 = tf.div(tf.constant(distance_threshold_T), tf.constant(distances_max[image_index]))
+		f_i.assign(tf.where(comparison1, value1, tf.zeros_like(f_i)))
 
-        return f_i   
-    
-    # Pass the groundtruth tf, image_index for distances 
-    def overall_cost(groundtruth, ):
-        a = tf.log(fc_layer_output)
-        return groundtruth * tf.log(tf.sigmoid(a) + tf.exp(-f_function(image_index)) * (1 - groundtruth) * tf.log(1 - a)                               
-            
+		return f_i   
+	
+	# Pass the groundtruth tf, image_index for distances 
+	def overall_cost(self, groundtruth, image_index, fc_layer_output):
+		a = tf.log(fc_layer_output)
+		return ( groundtruth * tf.log(tf.sigmoid(a)) + tf.exp(-f_function(image_index)) * (1 - groundtruth) * tf.log(1 - a) )
 
 	def build_model(self, imgs, name, reuse = False):
 		#print("In build_model")
@@ -267,23 +278,39 @@ class rsrcnn:
 
 def test_deconv2d_custom():
 
+	initialize_variable("deconv1", "deconv_weights", [4,4])
+	initialize_variable("deconv2", "deconv_weights", [4,4])
+
 	sess = tf.InteractiveSession()
 	model = rsrcnn(sess=sess)
-	inp_tensor = tf.constant([[1,1,1],[1,1,1],[1,1,1]], dtype="float32")
-	filter = tf.constant([[1,1,1,1],[2,2,2,2],[3,3,3,3],[4,4,4,4]], dtype="float32")
+	inp_tensor = tf.constant([ 
+								[[1,1,1],[1,1,1],[1,1,1]],
+								[[2,2,2],[2,2,2],[2,2,2]]
+							],
+							 dtype="float32")
 
-	model.deconv2d_custom(inp_tensor, filter, name="deconv")
-    
+	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv1")
+	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv2")
+
+
+def initialize_variable(scope_name, var_name, shape):
+    with tf.variable_scope(scope_name) as scope:
+        v = tf.get_variable(var_name, shape)
+        #scope.reuse_variable()
+	
 
 
 if __name__ == '__main__':
 
+	# test_deconv2d_custom()
+	# sys.exit()
+
 	sess = tf.Session()
 	imgs = tf.placeholder(tf.float32, [None, 375, 375, 3])
-    groundtruths = tf.placeholder(tf.float32, [None, 375, 375, 3])
-	model = rsrcnn(imgs, groundtruths, distances 'vgg16_weights.npz', sess)
-    model.load_distance("./data/generate/patches_rotation/distances") 
-    
+	groundtruths = tf.placeholder(tf.float32, [None, 375, 375, 3])
+	model = rsrcnn(imgs, groundtruths, 'vgg16_weights.npz', sess)
+	model.load_distance("./data/generate/patches_rotation/distances") 
+	
 	img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
 	img1 = misc.imresize(img1, (224, 224))
 
