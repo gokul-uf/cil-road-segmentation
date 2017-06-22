@@ -283,8 +283,8 @@ if __name__ == '__main__':
 	sess = tf.Session()
 	imgs = tf.placeholder(tf.float32, [None, 375, 375, 3])
     groundtruths = tf.placeholder(tf.float32, [None, 375, 375, 3])
-	model = rsrcnn(imgs, groundtruths, distances 'vgg16_weights.npz', sess)
-    model.load_distance("./data/generate/patches_rotation/distances") 
+	model = rsrcnn(imgs, groundtruths, 'vgg16_weights.npz', sess)
+    model.load_distance("../generate/patches_rotation/distances") 
     
 	img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
 	img1 = misc.imresize(img1, (224, 224))
