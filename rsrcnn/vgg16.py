@@ -181,18 +181,20 @@ class rsrcnn:
         #f_i[f_i > distance_threshold_T] = distance_threshold_T / distances_max[image_index]
 
         comparison0 = tf.logical_and(tf.greater(f_i, tf.constant(0)), tf.less_equal(f_i, tf.constant(distance_threshold_T))) 
-        value0 = tf.div(f_i, tf.constant(distances_max[image_index]))
+        value0 = tf.div(f_i, tf.fill(f_i.shape, distances_max[image_index]))
         f_i.assign(tf.where(comparison0, value0, tf.zeros_like(f_i)))
-        comparison1 = tf.greater(f_i, tf.constant(distance_threshold_T))
-        value1 = tf.div(tf.constant(distance_threshold_T), tf.constant(distances_max[image_index]))
+        comparison1 = tf.greater(f_i, tf.fill(f_i.shape, distance_threshold_T))
+        value1 = tf.div(tf.fill(f_i.shape, distance_threshold_T), tf.fill(f_i.shape, distances_max[image_index]))
         f_i.assign(tf.where(comparison1, value1, tf.zeros_like(f_i)))
 
         return f_i   
     
     # Pass the groundtruth tf, image_index for distances 
-    def overall_cost(groundtruth, ):
+    def overall_cost(groundtruth, fc_layer_output, f_d_i):
         a = tf.log(fc_layer_output)
-        return groundtruth * tf.log(tf.sigmoid(a) + tf.exp(-f_function(image_index)) * (1 - groundtruth) * tf.log(1 - a)                               
+        cost = groundtruth * tf.log(tf.sigmoid(a) + 
+               tf.exp(-f_d_i) * (tf.ones(groudtruth.shape) - groundtruth) * tf.log(tf.ones(groudtruth.shape) - a) 
+        return  tf.reduce_mean(-tf.reduce_sum(cost, reduction_indices=[1]))                           
             
 
 	def build_model(self, imgs, name, reuse = False):
