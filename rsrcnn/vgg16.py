@@ -464,7 +464,7 @@ class rsrcnn:
 			print("fusion2 shape")
 			print(fusion2.get_shape())
 
-			deconv3 = self.deconv2d(fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 384, 384, 1],
+			deconv3 = self.deconv2d(fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 379, 379, 1],
 									strides=(1,8,8,1), name="deconv_2")
 
 			print("deconv3 shape")
