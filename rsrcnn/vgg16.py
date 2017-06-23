@@ -384,14 +384,14 @@ class rsrcnn:
 
 			conv1_1 = self.conv2d(input = images,  filter_shape = [3, 3, 3,   64],  name = "conv1_1")
 
-			print("conv1_1 shape")
-			print(conv1_1.get_shape())
+			# print("conv1_1 shape")
+			# print(conv1_1.get_shape())
 
 			conv1_2 = self.conv2d(input = conv1_1, filter_shape = [3, 3, 64,  64],  name = "conv1_2")
 			pool1 = self.max_pool(input = conv1_2, name = "pool1")
 
-			print("pool1 shape")
-			print(pool1.get_shape())
+			# print("pool1 shape")
+			# print(pool1.get_shape())
 
 			conv2_1 = self.conv2d(input = pool1,   filter_shape = [3, 3, 64,  128], name = "conv2_1")
 			conv2_2 = self.conv2d(input = conv2_1, filter_shape = [3, 3, 128, 128], name = "conv2_2")
@@ -407,45 +407,45 @@ class rsrcnn:
 			conv4_3 = self.conv2d(input = conv4_2, filter_shape = [3, 3, 512, 512], name = "conv4_3")
 			pool4 = self.max_pool(input = conv4_3, name = "pool4")
 
-			print("pool4 shape")
-			print(pool4.get_shape())
+			# print("pool4 shape")
+			# print(pool4.get_shape())
 
 			conv5_1 = self.conv2d(input = pool4,   filter_shape = [3, 3, 512, 512], name = "conv5_1")
 			conv5_2 = self.conv2d(input = conv5_1, filter_shape = [3, 3, 512, 512], name = "conv5_2")
 			conv5_3 = self.conv2d(input = conv5_2, filter_shape = [3, 3, 512, 512], name = "conv5_3")
 			pool5 = self.max_pool(input = conv5_3, name = "pool5")
 
-			print("pool5 shape")
-			print(pool5.get_shape())
+			# print("pool5 shape")
+			# print(pool5.get_shape())
 
 			# No padding in c14-18 and DCs
 			conv14 = self.conv2d(input = pool5,   filter_shape = [7, 7, 512,  2048], name = "conv14")
 			conv15 = self.conv2d(input = conv14,  filter_shape = [1, 1, 2048, 512],  name = "conv15")
 
 
-			print("conv14 shape")
-			print(conv14.get_shape())
+			# print("conv14 shape")
+			# print(conv14.get_shape())
 
-			print("conv15 shape")
-			print(conv15.get_shape())
+			# print("conv15 shape")
+			# print(conv15.get_shape())
 
-			print("conv15 shape")
-			print(conv15.get_shape())
+			# print("conv15 shape")
+			# print(conv15.get_shape())
 
 			conv16 = self.conv2d(input = conv15,  filter_shape = [1, 1, 512,  1],    name = "conv16")
 
-			print("conv16 shape")
-			print(conv16.get_shape())
+			# print("conv16 shape")
+			# print(conv16.get_shape())
 			
 			conv17 = self.conv2d(input = pool4,   filter_shape = [1, 1, 512,  1],    name = "conv17")
 
-			print("conv17 shape")
-			print(conv17.get_shape())
+			# print("conv17 shape")
+			# print(conv17.get_shape())
 
 			conv18 = self.conv2d(input = pool3,   filter_shape = [1, 1, 256,  1],    name = "conv18")
 
-			print("conv18 shape")
-			print(conv18.get_shape())
+			# print("conv18 shape")
+			# print(conv18.get_shape())
 
 			# deconv1 = self.deconv2d_custom(conv16, filter_shape=[4, 4], name="deconv_1")
 
@@ -455,37 +455,39 @@ class rsrcnn:
 
 			deconv1 = self.deconv2d(conv16, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 13, 13, 1], name="deconv_1")
 
-			print("deconv1 shape")
-			print(deconv1.get_shape())
+			# print("deconv1 shape")
+			# print(deconv1.get_shape())
 
 			fusion1 = self.fusion(deconv1, conv17, name="fusion_1")
 
-			print("fusion1 shape")
-			print(fusion1.get_shape())
+			# print("fusion1 shape")
+			# print(fusion1.get_shape())
 
 			deconv2 = self.deconv2d(fusion1, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 26, 26, 1], name="deconv_2")
 
-			print("deconv2 shape")
-			print(deconv2.get_shape())
+			# print("deconv2 shape")
+			# print(deconv2.get_shape())
 
 			fusion2 = self.fusion(deconv2, conv18, name="fusion_2")
 
-			print("fusion2 shape")
-			print(fusion2.get_shape())
+			# print("fusion2 shape")
+			# print(fusion2.get_shape())
 
 			deconv3 = self.deconv2d(deconv2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 208, 208, 1],
 									strides=(1,8,8,1), name="deconv_3")
 
-			print("deconv3 shape")
-			print(deconv3.get_shape())
+			# print("deconv3 shape")
+			# print(deconv3.get_shape())
 
 			crop = self.crop(deconv3, name="crop")
 			output = tf.reshape(crop , shape=[self.batch_size, self.inp_dim, self.inp_dim] )
 
-			print("crop shape")
-			print(output.get_shape())
+			# print("crop shape")
+			# print(output.get_shape())
 			
 			self.output = output
+
+			print("building model done")
 
 	def build_optimizer(self):
 		
@@ -558,11 +560,7 @@ class rsrcnn:
 		self.initialize_variable("deconv_2", "weights", [4, 4, 1, 1])
 		self.initialize_variable("deconv_3", "weights", [16, 16, 1, 1])
 
-		
-			
-
-#    def decoder(self, )
-
+					
 def test_deconv2d_custom():
 
 	sess = tf.InteractiveSession()
@@ -580,16 +578,12 @@ def test_deconv2d_custom():
 	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv_1")
 	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv_2")
 
-
-
 if __name__ == '__main__':
 
 	# test_deconv2d_custom()
 	# sys.exit()
 
 	sess = tf.Session()
-	init = tf.initialize_all_variables()
-	sess.run(init)
 	
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
 
@@ -659,6 +653,9 @@ if __name__ == '__main__':
 	print(train_groundtruths[0].shape)
 	print(train_images[0].shape)
 
+	model.sess.run(tf.global_variables_initializer())
+
+	print("All variables initialized.")
 
 	for i in range(int(len(images) / BATCH_SIZE)):
 		sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
