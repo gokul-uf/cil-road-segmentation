@@ -9,19 +9,20 @@ from os import listdir
 from scipy import ndimage
 import random
 
-tf.app.flags.DEFINE_float("learning_rate"             , 0.001 , "Learning rate.")
-tf.app.flags.DEFINE_float("max_gradient_norm"         , 5.0   , "Clip gradients to this norm.")
+tf.app.flags.DEFINE_float("learning_rate"               , 0.001 , "Learning rate.")
+tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
+
+tf.app.flags.DEFINE_integer("batch_size"                , 10    , "batch size.")
+tf.app.flags.DEFINE_integer("num_epochs"                , 1000  , "number of epochs.")
+
+tf.app.flags.DEFINE_string("IMAGES_PATH"       , "../data/CIL/generate/patches/sat/", "path to images.")
+tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "../data/CIL/generate/patches/org/", "path to labels.")
+tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "../data/CIL/generate/patches/dst/", "path to distances.")
 
 FLAGS = tf.app.flags.FLAGS
 
-
-IMAGES_PATH = "../data/mhui/generate/patches_rotation/images/"
-GROUNDTRUTHS_PATH = "../data/mhui/generate/patches_rotation/groundtruth/"
-DISTANCES_PATH = "../data/mhui/generate/patches_rotation/distance/"
-
 IMAGE_HEIGHT = 200
 IMAGE_WIDTH = 200
-BATCH_SIZE = 10
 
 class rsrcnn:
 
@@ -361,12 +362,12 @@ class rsrcnn:
 	def overall_loss(self):
 
 		exp_dists = tf.exp(-self.distances)
-		print("exp_dists shape")
-		print(exp_dists.get_shape())
+		# print("exp_dists shape")
+		# print(exp_dists.get_shape())
 
 		groundtruths_cmpl = (1-self.groundtruths)		
-		print("groundtruths_cmpl shape")
-		print(groundtruths_cmpl.get_shape())
+		# print("groundtruths_cmpl shape")
+		# print(groundtruths_cmpl.get_shape())
 
 		loss = ( (exp_dists * self.output) * groundtruths_cmpl ) + \
 			( tf.log(1+tf.exp(-self.output)) * (self.groundtruths + (groundtruths_cmpl*exp_dists) ) )
@@ -588,57 +589,28 @@ if __name__ == '__main__':
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
 
 	print("model creation done!")
-	# model.load_distance("../generate/patches/dst/") 
-	
-	# img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
-	# img1 = misc.imresize(img1, (224, 224))
-
-	# prob = sess.run(model.output, feed_dict={model.imgs: [img1]})[0]
-	# preds = (np.argsort(prob)[::-1])[0:5]
-	# for p in preds:
-	# 	print(class_names[p], prob[p])
 
 	images = [] 
-	for file in listdir(IMAGES_PATH):
-		image = ndimage.imread(IMAGES_PATH + file)
+	for file in listdir(FLAGS.IMAGES_PATH):
+		image = ndimage.imread(FLAGS.IMAGES_PATH + file)
 		images.append(image)
 
 	groundtruths = []
-	for file in listdir(GROUNDTRUTHS_PATH):
-		groundtruth = ndimage.imread(GROUNDTRUTHS_PATH + file, mode = 'L')
+	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
+		groundtruth = ndimage.imread(FLAGS.GROUNDTRUTHS_PATH + file, mode = 'L')
 		groundtruths.append(groundtruth)		
 
 	distances = []
 	distances_max = []
-	for file in listdir(DISTANCES_PATH):
-		distance_image = ndimage.imread(DISTANCES_PATH + file, mode = 'L')
+	for file in listdir(FLAGS.DISTANCES_PATH):
+		distance_image = ndimage.imread(FLAGS.DISTANCES_PATH + file, mode = 'L')
 		distances.append(distance_image)
 
-	# print(len(images))	
-	# validation_size = int(len(images) / 10)
-	# partitions = [0] * len(images)
-	# partitions[:validation_size] = [1] * validation_size
-	# random.shuffle(partitions)
-	# print(partitions)
+	# randomly permute
+	zipped_list = list(zip(images, groundtruths, distances))
+	np.random.shuffle(zipped_list)
 
-	# train_images, validation_images = tf.dynamic_partition(images, partitions, 2)
-	# train_groundtruths, validation_groundtruths = tf.dynamic_partition(groundtruths, partitions, 2)	
-
-	# # define tensor shape
-	# train_images.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, 3])
-	# validation_images.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, 3])
-	# train_groundtruths.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, 1])
-	# validation_groundtruths.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, 1])
-
-	# train_images_batch, train_groundtruths_batch = tf.train.batch(
- #                                    	[train_images, train_groundtruths],
- #                                    	batch_size=BATCH_SIZE)
-	# validation_images_batch, validation_groundtruths_batch = tf.train.batch(
- #                                    	[validation_images, validation_groundtruths],
- #                                    	batch_size=BATCH_SIZE)
-
-	# img1 = misc.imread(IMAGES_PATH + "10078660_15_00000.png", mode='RGB') # example of image
-	# img1 = misc.imresize(img1, (200, 200))
+	images, groundtruths, distances = zip(*zipped_list)
 
 	validation_images = images[0:int(len(images) / 10)]
 	train_images = images[int(len(images) / 10) :]
@@ -654,56 +626,17 @@ if __name__ == '__main__':
 	print(train_images[0].shape)
 
 	model.sess.run(tf.global_variables_initializer())
-
 	print("All variables initialized.")
 
-	for i in range(int(len(images) / BATCH_SIZE)):
-		sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-										  model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-										  model.imgs : train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
-										  })
+	sys.exit()
+	for epoch in range(FLAGS.num_epochs):
 
+		for i in range(len(train_images) // BATCH_SIZE):
+			sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+											  model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+											  model.imgs : train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
+											  })
 
-
-
-	# prob = sess.run(model.output, feed_dict={[img1]})[0]
-	# preds = (np.argsort(prob)[::-1])[0:5]
-	# for p in preds:
-	#  	print(class_names[p], prob[p])
-
-
-
-'''
-(0, 'conv1_1_W', (3, 3, 3, 64))
-(1, 'conv1_1_b', (64,))
-(2, 'conv1_2_W', (3, 3, 64, 64))
-(3, 'conv1_2_b', (64,))
-(4, 'conv2_1_W', (3, 3, 64, 128))
-(5, 'conv2_1_b', (128,))
-(6, 'conv2_2_W', (3, 3, 128, 128))
-(7, 'conv2_2_b', (128,))
-(8, 'conv3_1_W', (3, 3, 128, 256))
-(9, 'conv3_1_b', (256,))
-(10, 'conv3_2_W', (3, 3, 256, 256))
-(11, 'conv3_2_b', (256,))
-(12, 'conv3_3_W', (3, 3, 256, 256))
-(13, 'conv3_3_b', (256,))
-(14, 'conv4_1_W', (3, 3, 256, 512))
-(15, 'conv4_1_b', (512,))
-(16, 'conv4_2_W', (3, 3, 512, 512))
-(17, 'conv4_2_b', (512,))
-(18, 'conv4_3_W', (3, 3, 512, 512))
-(19, 'conv4_3_b', (512,))
-(20, 'conv5_1_W', (3, 3, 512, 512))
-(21, 'conv5_1_b', (512,))
-(22, 'conv5_2_W', (3, 3, 512, 512))
-(23, 'conv5_2_b', (512,))
-(24, 'conv5_3_W', (3, 3, 512, 512))
-(25, 'conv5_3_b', (512,))
-(26, 'fc6_W', (25088, 4096))
-(27, 'fc6_b', (4096,))
-(28, 'fc7_W', (4096, 4096))
-(29, 'fc7_b', (4096,))
-(30, 'fc8_W', (4096, 1000))
-(31, 'fc8_b', (1000,))
-'''
+		zipped_list = list(zip(train_images, train_groundtruths, train_distances))
+		np.random.shuffle(zipped_list)
+		train_images, train_groundtruths, train_distances = zip(*zipped_list)
