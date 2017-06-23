@@ -5,6 +5,13 @@ import numpy as np
 from imagenet_classes import class_names
 import sys
 import os
+from os import listdir
+from scipy import ndimage
+
+tf.app.flags.DEFINE_float("learning_rate"             , 0.001 , "Learning rate.")
+tf.app.flags.DEFINE_float("max_gradient_norm"         , 5.0   , "Clip gradients to this norm.")
+
+FLAGS = tf.app.flags.FLAGS
 
 class rsrcnn:
 
@@ -17,17 +24,25 @@ class rsrcnn:
 
 		self.sess = sess
 		self.batch_size = 10
-		self.imgs = tf.placeholder(tf.float32, [self.batch_size, 375, 375, 3])
-		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, 375, 375, 3])
-		self.distances = tf.placeholder(tf.float32, [self.batch_size, 200, 200])
-		self.diatances_max = tf.placeholder(tf.float32, [self.batch_size])
+		self.inp_dim = 375
+
+		self.learning_rate = FLAGS.learning_rate
+		self.max_gradient_norm = FLAGS.max_gradient_norm
+
+		self.imgs         = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim, 3])
+		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
+		self.distances    = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
+		self.distances_max = tf.placeholder(tf.float32, [None])
 		self.conv = {}
 		self.pool = {}
 		self.fc   = {}
-		self.output = self.build_model('rsrcnn')
+		
+		self.build_model('rsrcnn')
 
 		if weights is not None and sess is not None:
 			self.load_vgg16_weights(weights, 'rsrcnn')
+
+		self.build_optimizer()
 
 	def load_vgg16_weights(self, weights_dir, name=None):
 
@@ -293,11 +308,20 @@ class rsrcnn:
 		return self.fc[name]
 	
 	def load_distance(self, path):
-		for file in listdir(path):
-			distance_image = ndimage.imread(path + file, mode = 'L')
-			distance = tf.pack(distance_image)
-			distances_max.concat(tf.reduce_max(distance))
-			distances.concat(distance, 0)
+
+		distances_max = []
+		distances = []
+
+		for i, file in enumerate(listdir(path)):
+			print(file)
+			distance_image = ndimage.imread(os.path.join(path, file), mode = 'L')
+			distance = tf.stack(distance_image)
+	
+			distances_max.append(tf.reduce_max(distance))
+			distances.append(distance)
+
+		self.distances_max = tf.stack(distances_max)
+		self.distances = tf.stack(distances)
 	
 	def f_function(self, image_index, name = None):
 		
@@ -316,10 +340,22 @@ class rsrcnn:
 		return f_i   
 	
 	# Pass the groundtruth tf, image_index for distances 
-	def overall_cost(self, groundtruth, image_index, fc_layer_output):
-		a = tf.log(fc_layer_output)
-		return ( groundtruth * tf.log(tf.sigmoid(a)) + tf.exp(-f_function(image_index)) * (1 - groundtruth) * tf.log(1 - a) )
+	# the loss is unnormalized
+	def overall_loss(self):
 
+		exp_dists = tf.exp(-self.distances)
+		print("exp_dists shape")
+		print(exp_dists.get_shape())
+
+		groundtruths_cmpl = (1-self.groundtruths)		
+		print("groundtruths_cmpl shape")
+		print(groundtruths_cmpl.get_shape())
+
+		loss = ( (exp_dists * self.output) * groundtruths_cmpl ) + \
+			( tf.log(1+tf.exp(-self.output)) * (self.groundtruths + (groundtruths_cmpl*exp_dists) ) )
+
+		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
+		
 	def build_model(self, name, reuse = False):
 		
 		self.parameters = []
@@ -418,11 +454,27 @@ class rsrcnn:
 			print(deconv3.get_shape())
 
 			crop = self.crop(deconv3, name="crop")
+			output = tf.reshape(crop , shape=[self.batch_size, 375, 375] )
 
 			print("crop shape")
-			print(crop.get_shape())
+			print(output.get_shape())
 			
-			return crop
+			self.output = output
+
+	def build_optimizer(self):
+		
+		self.loss = self.overall_loss()
+		print("loss shape")
+		print(self.loss.get_shape())
+
+		self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+
+		self.gradients = self.optimizer.compute_gradients(self.loss)
+
+		self.capped_gradients = [( tf.clip_by_value( grad, -self.max_gradient_norm, self.max_gradient_norm ), variable ) for 
+																		grad, variable in self.gradients if grad is not None]
+
+		self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
 
 	def initialize_variable(self, scope_name, var_name, shape):
 	    with tf.variable_scope(scope_name) as scope:
@@ -508,15 +560,16 @@ if __name__ == '__main__':
 	sess = tf.Session()
 	
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
-	model.load_distance("./data/generate/patches_rotation/distances") 
-	
-	img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
-	img1 = misc.imresize(img1, (224, 224))
 
-	prob = sess.run(model.output, feed_dict={model.imgs: [img1]})[0]
-	preds = (np.argsort(prob)[::-1])[0:5]
-	for p in preds:
-		print(class_names[p], prob[p])
+	# model.load_distance("../generate/patches/dst/") 
+	
+	# img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
+	# img1 = misc.imresize(img1, (224, 224))
+
+	# prob = sess.run(model.output, feed_dict={model.imgs: [img1]})[0]
+	# preds = (np.argsort(prob)[::-1])[0:5]
+	# for p in preds:
+	# 	print(class_names[p], prob[p])
 
 
 '''
