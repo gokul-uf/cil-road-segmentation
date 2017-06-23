@@ -321,7 +321,7 @@ class rsrcnn:
 		return ( groundtruth * tf.log(tf.sigmoid(a)) + tf.exp(-f_function(image_index)) * (1 - groundtruth) * tf.log(1 - a) )
 
 	def build_model(self, name, reuse = False):
-		#print("In build_model")
+		
 		self.parameters = []
 		with tf.variable_scope(name, reuse=reuse) as scope:
 
