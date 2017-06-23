@@ -554,11 +554,17 @@ def f_function(distance):
 	max_dist = np.sqrt(np.amax(distance))
 	threshold = 0.3 * max_dist
 
-	distance[distance == 0] = 0
-	distance[(distance > 0) & (distance < threshold)] = distance / max_dist
-	distance[distance > threshold] = threshold / max_dist
+	#distance[distance == 0] = 0
 
-	return distance  
+	def map_value(x):
+		if x==0:
+			return 0
+		elif x>0 and x<=threshold:
+			return x/max_dist
+		elif x>threshold:
+			return threshold/max_dist 
+	
+	return np.vectorize(map_value)(distance)  
 
 
 if __name__ == '__main__':
@@ -568,19 +574,22 @@ if __name__ == '__main__':
 
 	sess = tf.Session()
 	
+	print("Creating model")
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
-	print("model creation done!")
 
+	print("Reading images")
 	images = [] 
 	for file in listdir(FLAGS.IMAGES_PATH):
 		image = ndimage.imread(FLAGS.IMAGES_PATH + file)
 		images.append(image)
 
+	print("Reading labels")
 	groundtruths = []
 	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
 		groundtruth = ndimage.imread(FLAGS.GROUNDTRUTHS_PATH + file, mode = 'L')
 		groundtruths.append(groundtruth)		
 
+	print("Reading distances")
 	distances = []
 	distances_max = []
 	for file in listdir(FLAGS.DISTANCES_PATH):
@@ -588,6 +597,7 @@ if __name__ == '__main__':
 		distances.append(f_function(distance_image))
 
 
+	print("Randomizing inputs")
 	# randomly permute
 	zipped_list = list(zip(images, groundtruths, distances))
 	np.random.shuffle(zipped_list)
@@ -607,9 +617,10 @@ if __name__ == '__main__':
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
 
-	sys.exit()
+	print("Starting training")
 	for epoch in range(FLAGS.num_epochs):
 
+		print("Epoch {0} started".format(epoch))
 		for i in range(len(train_images) // BATCH_SIZE):
 			sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
 											  model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
