@@ -24,6 +24,7 @@ FLAGS = tf.app.flags.FLAGS
 IMAGE_HEIGHT = 200
 IMAGE_WIDTH = 200
 
+
 class rsrcnn:
 
 	def __init__(self, weights=None, sess=None):
@@ -325,37 +326,6 @@ class rsrcnn:
 			self.parameters += [fcw, fcb]
 		return self.fc[name]
 	
-	def load_distance(self, path):
-
-		distances_max = []
-		distances = []
-
-		for i, file in enumerate(listdir(path)):
-			print(file)
-			distance_image = ndimage.imread(os.path.join(path, file), mode = 'L')
-			distance = tf.stack(distance_image)
-	
-			distances_max.append(tf.reduce_max(distance))
-			distances.append(distance)
-
-		self.distances_max = tf.stack(distances_max)
-		self.distances = tf.stack(distances)
-	
-	def f_function(self, image_index, name = None):
-		
-		f_i = distances[image_index]
-		#f_i[f_i == 0] = 0
-		#f_i[f_i > 0 and f_i < distance_threshold_T] = f_i / distances_max[image_index]
-		#f_i[f_i > distance_threshold_T] = distance_threshold_T / distances_max[image_index]
-
-		comparison0 = tf.logical_and(tf.greater(f_i, tf.constant(0)), tf.less_equal(f_i, tf.constant(distance_threshold_T))) 
-		value0 = tf.div(f_i, tf.constant(distances_max[image_index]))
-		f_i.assign(tf.where(comparison0, value0, tf.zeros_like(f_i)))
-		comparison1 = tf.greater(f_i, tf.constant(distance_threshold_T))
-		value1 = tf.div(tf.constant(distance_threshold_T), tf.constant(distances_max[image_index]))
-		f_i.assign(tf.where(comparison1, value1, tf.zeros_like(f_i)))
-
-		return f_i   
 	
 	# Pass the groundtruth tf, image_index for distances 
 	# the loss is unnormalized
@@ -579,6 +549,18 @@ def test_deconv2d_custom():
 	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv_1")
 	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv_2")
 
+def f_function(distance):
+	
+	max_dist = np.sqrt(np.amax(distance))
+	threshold = 0.3 * max_dist
+
+	distance[distance == 0] = 0
+	distance[(distance > 0) & (distance < threshold)] = distance / max_dist
+	distance[distance > threshold] = threshold / max_dist
+
+	return distance  
+
+
 if __name__ == '__main__':
 
 	# test_deconv2d_custom()
@@ -587,7 +569,6 @@ if __name__ == '__main__':
 	sess = tf.Session()
 	
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
-
 	print("model creation done!")
 
 	images = [] 
@@ -604,7 +585,8 @@ if __name__ == '__main__':
 	distances_max = []
 	for file in listdir(FLAGS.DISTANCES_PATH):
 		distance_image = ndimage.imread(FLAGS.DISTANCES_PATH + file, mode = 'L')
-		distances.append(distance_image)
+		distances.append(f_function(distance_image))
+
 
 	# randomly permute
 	zipped_list = list(zip(images, groundtruths, distances))
@@ -621,9 +603,6 @@ if __name__ == '__main__':
 	validation_distances = distances[0:int(len(distances) / 10)]
 	train_distances = distances[int(len(distances) / 10) :]
 
-	print(train_distances[0].shape)
-	print(train_groundtruths[0].shape)
-	print(train_images[0].shape)
 
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
@@ -640,3 +619,6 @@ if __name__ == '__main__':
 		zipped_list = list(zip(train_images, train_groundtruths, train_distances))
 		np.random.shuffle(zipped_list)
 		train_images, train_groundtruths, train_distances = zip(*zipped_list)
+
+
+
