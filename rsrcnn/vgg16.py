@@ -4,54 +4,129 @@ from scipy import misc
 import numpy as np
 from imagenet_classes import class_names
 import sys
+import os
 
 class rsrcnn:
 
-	def __init__(self, imgs=None, groundtruths=None, weights=None, sess=None):
+	def __init__(self, weights=None, sess=None):
 
-		if imgs is None:
+		if weights is None:
 
 			self.sess = sess
 			return
 
-		self.imgs = imgs
-		self.groundtruths = groundtruths
-		self.distances = tf.placeholder(tf.float32, [None, 200, 200])
-		self.diatances_max = tf.placeholder(tf.float32, [None])
+		self.sess = sess
+		self.batch_size = 10
+		self.imgs = tf.placeholder(tf.float32, [self.batch_size, 375, 375, 3])
+		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, 375, 375, 3])
+		self.distances = tf.placeholder(tf.float32, [self.batch_size, 200, 200])
+		self.diatances_max = tf.placeholder(tf.float32, [self.batch_size])
 		self.conv = {}
 		self.pool = {}
 		self.fc   = {}
-		self.output = self.build_model(self.imgs, 'rsrcnn')
+		self.output = self.build_model('rsrcnn')
+
 		if weights is not None and sess is not None:
-			self.load_weights(weights, sess)
+			self.load_vgg16_weights(weights, 'rsrcnn')
 
-	def load_weights(self, weight_file, sess):
-		weights = np.load(weight_file)
-		
-		keys = sorted(weights)
+	def load_vgg16_weights(self, weights_dir, name=None):
 
-		for i, k in enumerate(keys):  
-			print(i, k, np.shape(weights[k]))
-			sess.run(self.parameters[i].assign(weights[k]))
-			if k == 'conv5_3_W': break
+		conv1_1_b_np = np.load(os.path.join(weights_dir, "conv1_1_b.npy"))
+		conv1_1_W_np = np.load(os.path.join(weights_dir, "conv1_1_W.npy"))
+		conv1_2_b_np = np.load(os.path.join(weights_dir, "conv1_2_b.npy"))
+		conv1_2_W_np = np.load(os.path.join(weights_dir, "conv1_2_W.npy"))
+
+		conv2_1_b_np = np.load(os.path.join(weights_dir, "conv2_1_b.npy"))
+		conv2_1_W_np = np.load(os.path.join(weights_dir, "conv2_1_W.npy"))
+		conv2_2_b_np = np.load(os.path.join(weights_dir, "conv2_2_b.npy"))
+		conv2_2_W_np = np.load(os.path.join(weights_dir, "conv2_2_W.npy"))
+
+		conv3_1_b_np = np.load(os.path.join(weights_dir, "conv3_1_b.npy"))
+		conv3_1_W_np = np.load(os.path.join(weights_dir, "conv3_1_W.npy"))
+		conv3_2_b_np = np.load(os.path.join(weights_dir, "conv3_2_b.npy"))
+		conv3_2_W_np = np.load(os.path.join(weights_dir, "conv3_2_W.npy"))
+		conv3_3_b_np = np.load(os.path.join(weights_dir, "conv3_3_b.npy"))
+		conv3_3_W_np = np.load(os.path.join(weights_dir, "conv3_3_W.npy"))
+
+		conv4_1_b_np = np.load(os.path.join(weights_dir, "conv4_1_b.npy"))
+		conv4_1_W_np = np.load(os.path.join(weights_dir, "conv4_1_W.npy"))
+		conv4_2_b_np = np.load(os.path.join(weights_dir, "conv4_2_b.npy"))
+		conv4_2_W_np = np.load(os.path.join(weights_dir, "conv4_2_W.npy"))
+		conv4_3_b_np = np.load(os.path.join(weights_dir, "conv4_3_b.npy"))
+		conv4_3_W_np = np.load(os.path.join(weights_dir, "conv4_3_W.npy"))
+
+		conv5_1_b_np = np.load(os.path.join(weights_dir, "conv5_1_b.npy"))
+		conv5_1_W_np = np.load(os.path.join(weights_dir, "conv5_1_W.npy"))
+		conv5_2_b_np = np.load(os.path.join(weights_dir, "conv5_2_b.npy"))
+		conv5_2_W_np = np.load(os.path.join(weights_dir, "conv5_2_W.npy"))
+		conv5_3_b_np = np.load(os.path.join(weights_dir, "conv5_3_b.npy"))
+		conv5_3_W_np = np.load(os.path.join(weights_dir, "conv5_3_W.npy"))
+
+
+		with tf.variable_scope(name, reuse=True) as scope:
+
+			conv1_1_b = tf.get_variable(initializer=tf.constant(conv1_1_b_np), name='conv1_1/biases')
+			conv1_1_W = tf.get_variable(initializer=tf.constant(conv1_1_W_np), name='conv1_1/weights')
+			conv1_2_b = tf.get_variable(initializer=tf.constant(conv1_2_b_np), name='conv1_2/biases')
+			conv1_2_W = tf.get_variable(initializer=tf.constant(conv1_2_W_np), name='conv1_2/weights')
+
+			conv2_1_b = tf.get_variable(initializer=tf.constant(conv2_1_b_np), name='conv2_1/biases')
+			conv2_1_W = tf.get_variable(initializer=tf.constant(conv2_1_W_np), name='conv2_1/weights')
+			conv2_2_b = tf.get_variable(initializer=tf.constant(conv2_2_b_np), name='conv2_2/biases')
+			conv2_2_W = tf.get_variable(initializer=tf.constant(conv2_2_W_np), name='conv2_2/weights')
+
+			conv3_1_b = tf.get_variable(initializer=tf.constant(conv3_1_b_np), name='conv3_1/biases')
+			conv3_1_W = tf.get_variable(initializer=tf.constant(conv3_1_W_np), name='conv3_1/weights')
+			conv3_2_b = tf.get_variable(initializer=tf.constant(conv3_2_b_np), name='conv3_2/biases')
+			conv3_2_W = tf.get_variable(initializer=tf.constant(conv3_2_W_np), name='conv3_2/weights')
+			conv3_2_b = tf.get_variable(initializer=tf.constant(conv3_2_b_np), name='conv3_2/biases')
+			conv3_2_W = tf.get_variable(initializer=tf.constant(conv3_2_W_np), name='conv3_2/weights')
+
+			conv4_1_b = tf.get_variable(initializer=tf.constant(conv4_1_b_np), name='conv4_1/biases')
+			conv4_1_W = tf.get_variable(initializer=tf.constant(conv4_1_W_np), name='conv4_1/weights')
+			conv4_2_b = tf.get_variable(initializer=tf.constant(conv4_2_b_np), name='conv4_2/biases')
+			conv4_2_W = tf.get_variable(initializer=tf.constant(conv4_2_W_np), name='conv4_2/weights')
+			conv4_2_b = tf.get_variable(initializer=tf.constant(conv4_2_b_np), name='conv4_2/biases')
+			conv4_2_W = tf.get_variable(initializer=tf.constant(conv4_2_W_np), name='conv4_2/weights')
+
+			conv5_1_b = tf.get_variable(initializer=tf.constant(conv5_1_b_np), name='conv5_1/biases')
+			conv5_1_W = tf.get_variable(initializer=tf.constant(conv5_1_W_np), name='conv5_1/weights')
+			conv5_2_b = tf.get_variable(initializer=tf.constant(conv5_2_b_np), name='conv5_2/biases')
+			conv5_2_W = tf.get_variable(initializer=tf.constant(conv5_2_W_np), name='conv5_2/weights')
+			conv5_2_b = tf.get_variable(initializer=tf.constant(conv5_2_b_np), name='conv5_2/biases')
+			conv5_2_W = tf.get_variable(initializer=tf.constant(conv5_2_W_np), name='conv5_2/weights')
+
+		print("params of C1-13 of vgg16 successfully loaded!")
 
 	def conv2d(self, input, filter_shape, strides = (1,1,1,1), activation = tf.nn.relu, pad = "SAME", name = None, stddev=1e-1):
 		#print("In conv2d")
-		with tf.variable_scope(name) as scope:
-			kernel = tf.Variable(tf.truncated_normal(filter_shape, dtype=tf.float32,
+		with tf.variable_scope(name, reuse=True) as scope:
+			kernel = tf.get_variable(initializer=tf.truncated_normal(filter_shape, dtype=tf.float32,
 													 stddev=stddev), name='weights')
 			conv = tf.nn.conv2d(input, kernel, strides, padding=pad)
-			biases = tf.Variable(tf.constant(0.0, shape=[filter_shape[3]], dtype=tf.float32),
+
+			biases = tf.get_variable( initializer=tf.constant(0.0, shape=[filter_shape[3]], dtype=tf.float32),
 								 trainable=True, name='biases')
 			out = tf.nn.bias_add(conv, biases)
 
 			self.conv[name] = tf.nn.relu(out, name=scope.name)
 			self.parameters += [kernel, biases]
 			return self.conv[name]
-		  
-	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None):
-		with tf.variable_scope(name) as scope:
-			return tf.nn.conv2d_transpose(input, filter, output_shape, strides, pad, name)
+		 
+	# no padding in deconv layer
+	# filter_shape => [batch, row, col]
+	# input_shape  => [batch, row, col] 
+	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'VALID', name = None, stddev=1e-1):
+
+		with tf.variable_scope(name, reuse=True) as scope:
+
+			filter = tf.get_variable(initializer=tf.truncated_normal(filter_shape, 
+									dtype=tf.float32, 
+									stddev=stddev),
+									name='weights')
+
+			return tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape, 
+				strides=strides, padding=pad)
 
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
@@ -60,10 +135,7 @@ class rsrcnn:
 
 		with tf.variable_scope(name, reuse=True) as scope:
 
-			input_shape = inp_tensor.get_shape()
-			num_batches = input_shape[0]
-			input_rows  = input_shape[1]
-			input_cols  = input_shape[2]
+			batch_size, input_rows, input_cols, _ = tf.unstack(tf.shape(inp_tensor))
 
 			fil_rows = filter_shape[0]
 			fil_cols = filter_shape[1]
@@ -71,22 +143,25 @@ class rsrcnn:
 			filter = tf.get_variable( initializer=tf.truncated_normal(filter_shape, 
 									dtype=tf.float32, 
 									stddev=stddev),
-									name='deconv_weights')
+									name='weights')
+
 
 			#filter = tf.constant([[1,1,1,1],[2,2,2,2],[3,3,3,3],[4,4,4,4]], dtype="float32")
 
 			output_rows = (input_rows-1)*stride + fil_rows
 
-			output = tf.zeros([num_batches, output_rows, output_rows], dtype="float32")
+			output = tf.ones([batch_size, output_rows, output_rows], dtype="float32")
 			
 			row_num = 0
 
+			_, num_rows, num_cols, _ = inp_tensor.get_shape();
+
 			# same number of rows and columns in input
-			for i in range(0, input_rows):
+			for i in range(0, num_rows):
 
 				col_num = 0
 
-				for j in range(0, input_cols):
+				for j in range(0, num_cols):
 
 					r_fil = tf.reshape( filter, [1, -1] )
 					r_inp = tf.reshape( inp_tensor[:, i, j], [-1, 1] )
@@ -125,7 +200,7 @@ class rsrcnn:
 
 		paddings = tf.Variable([ [0, 0], [row_pos, bottom_pad], [col_pos, right_pad] ], dtype=tf.int32, name="paddings")
 
-		self.sess.run(tf.global_variables_initializer())
+		#self.sess.run(tf.global_variables_initializer())
 
 		padded_out = tf.pad(tensor, paddings, "CONSTANT")
 
@@ -142,24 +217,63 @@ class rsrcnn:
 		self.pool[name] = res
 		return res
 	
-	def fusion(self, deconv_input, conv_input, filter_shape, name):
+	def fusion(self, deconv_input, conv_input, name):
 		with tf.variable_scope(name) as scope:
+
+			#if tf.not_equal(tf.shape(deconv_input), tf.shape(conv_input)):
 			if deconv_input.shape.as_list() != conv_input.shape.as_list():
+
 				# cut down shape of conv_output to that of deconv_output
 				if deconv_input.shape.as_list()[1] < conv_input.shape.as_list()[1]:
+
 					fraction = deconv_input.shape.as_list()[1] / conv_input.shape.as_list()[1]
+
+					crop_list = []
+					for b in range(self.batch_size):
+						crop_output = tf.image.central_crop(conv_input[b], central_fraction = fraction)
+						crop_list.append(crop_output)
+
+					crop_output = tf.stack(crop_list)
+
+					return tf.add(crop_output, deconv_input)
+
 				else:
 					fraction = conv_input.shape.as_list()[1] / deconv_input.shape.as_list()[1]
-				crop_output = tf.image.central_crop(conv_input, fraction = fraction)
-			else:
-				crop_output = conv_input
-			assert crop_output.shape.as_list() == deconv_input.shape.as_list()
-			return tf.add(crop_output, deconv_input)
 
-	def preprocess(self, imgs, name=None):
+					crop_list = []
+					for b in range(self.batch_size):
+						crop_output = tf.image.central_crop(deconv_input[b], central_fraction = fraction)
+						crop_list.append(crop_output)
+
+					crop_output = tf.stack(crop_list)
+
+					return tf.add(crop_output, conv_input)
+
+				
+			else:
+
+				return tf.add(conv_output, deconv_input)
+
+	def crop(self, input_tensor, name=None):
+
+		with tf.variable_scope(name) as scope:
+
+			fraction = 375 / input_tensor.shape.as_list()[1]
+
+			crop_list = []
+
+			for b in range(self.batch_size):
+				crop_output = tf.image.central_crop(input_tensor[b], central_fraction = fraction)
+				crop_list.append(crop_output)
+
+			crop_output = tf.stack(crop_list)
+
+			return crop_output
+
+	def preprocess(self, name=None):
 		with tf.variable_scope(name) as scope:
 			mean = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
-		return imgs - mean
+		return self.imgs - mean
 
 	def fc_layer(self, input, shape, name=None, init=False, end=False):
 		with tf.variable_scope(name) as scope:
@@ -206,12 +320,14 @@ class rsrcnn:
 		a = tf.log(fc_layer_output)
 		return ( groundtruth * tf.log(tf.sigmoid(a)) + tf.exp(-f_function(image_index)) * (1 - groundtruth) * tf.log(1 - a) )
 
-	def build_model(self, imgs, name, reuse = False):
+	def build_model(self, name, reuse = False):
 		#print("In build_model")
 		self.parameters = []
-		with tf.variable_scope(name, reuse = reuse) as scope:
+		with tf.variable_scope(name, reuse=reuse) as scope:
 
-			images = self.preprocess(imgs,name='preprocess')
+			self.initialize_all_variables()
+
+			images = self.preprocess(name='preprocess')
 
 			conv1_1 = self.conv2d(input = images,  filter_shape = [3, 3, 3,   64],  name = "conv1_1")
 
@@ -268,36 +384,120 @@ class rsrcnn:
 
 			print("conv18 shape")
 			print(conv18.get_shape())
+
+			# deconv1 = self.deconv2d_custom(conv16, filter_shape=[4, 4], name="deconv_1")
+
+			# print("deconv1 shape")
+			# print(deconv1.get_shape())
+
+
+			deconv1 = self.deconv2d(conv16, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 26, 26, 1], name="deconv_1")
+
+			print("deconv1 shape")
+			print(deconv1.get_shape())
+
+			fusion1 = self.fusion(deconv1, conv17, name="fusion_1")
+
+			print("fusion1 shape")
+			print(fusion1.get_shape())
+
+			deconv2 = self.deconv2d(fusion1, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 50, 50, 1], name="deconv_2")
+
+			print("deconv2 shape")
+			print(deconv2.get_shape())
+
+			fusion2 = self.fusion(deconv2, conv18, name="fusion_2")
+
+			print("fusion2 shape")
+			print(fusion2.get_shape())
+
+			deconv3 = self.deconv2d(fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 384, 384, 1],
+									strides=(1,8,8,1), name="deconv_2")
+
+			print("deconv3 shape")
+			print(deconv3.get_shape())
+
+			crop = self.crop(deconv3, name="crop")
+
+			print("crop shape")
+			print(crop.get_shape())
 			
-			
-			# deconv1 = self.upsample_2d(input = conv16, size = (?,?), name = '        ')
-			# return pool5
-			return True
+			return crop
+
+	def initialize_variable(self, scope_name, var_name, shape):
+	    with tf.variable_scope(scope_name) as scope:
+	        v = tf.get_variable(var_name, shape)
+	        #print(v.name)
+	        #scope.reuse_variable()
+
+	def initialize_all_variables(self):
+
+		self.initialize_variable("conv1_1", "weights", [3, 3, 3,   64])
+		self.initialize_variable("conv1_1", "biases" ,            [64])
+		self.initialize_variable("conv1_2", "weights", [3, 3, 64,  64])
+		self.initialize_variable("conv1_2", "biases" ,            [64])
+
+		self.initialize_variable("conv2_1", "weights", [3, 3, 64,  128])
+		self.initialize_variable("conv2_1", "biases" ,            [128])
+		self.initialize_variable("conv2_2", "weights", [3, 3, 128, 128])
+		self.initialize_variable("conv2_2", "biases" ,            [128])
+
+		self.initialize_variable("conv3_1", "weights", [3, 3, 128, 256])
+		self.initialize_variable("conv3_1", "biases" ,            [256])
+		self.initialize_variable("conv3_2", "weights", [3, 3, 256, 256])
+		self.initialize_variable("conv3_2", "biases" ,            [256])
+		self.initialize_variable("conv3_3", "weights", [3, 3, 256, 256])
+		self.initialize_variable("conv3_3", "biases" ,            [256])
+
+		self.initialize_variable("conv4_1", "weights", [3, 3, 256, 512])
+		self.initialize_variable("conv4_1", "biases" ,            [512])
+		self.initialize_variable("conv4_2", "weights", [3, 3, 512, 512])
+		self.initialize_variable("conv4_2", "biases" ,            [512])
+		self.initialize_variable("conv4_3", "weights", [3, 3, 512, 512])
+		self.initialize_variable("conv4_3", "biases" ,            [512])
+
+		self.initialize_variable("conv5_1", "weights", [3, 3, 512, 512])
+		self.initialize_variable("conv5_1", "biases" ,            [512])
+		self.initialize_variable("conv5_2", "weights", [3, 3, 512, 512])
+		self.initialize_variable("conv5_2", "biases" ,            [512])
+		self.initialize_variable("conv5_3", "weights", [3, 3, 512, 512])
+		self.initialize_variable("conv5_3", "biases" ,            [512])
+
+		self.initialize_variable("conv14", "weights", [7, 7, 512,  2048])
+		self.initialize_variable("conv14", "biases" ,             [2048])
+		self.initialize_variable("conv15", "weights", [7, 7, 2048, 512])
+		self.initialize_variable("conv15", "biases" ,             [512])
+
+		self.initialize_variable("conv16", "weights", [1, 1, 512,  1])
+		self.initialize_variable("conv16", "biases" ,             [1])
+		self.initialize_variable("conv17", "weights", [1, 1, 512,  1])
+		self.initialize_variable("conv17", "biases" ,             [1])
+		self.initialize_variable("conv18", "weights", [1, 1, 256,  1])
+		self.initialize_variable("conv18", "biases" ,             [1])
+
+
+		self.initialize_variable("deconv_1", "weights", [4, 4, 1, 1])
+		self.initialize_variable("deconv_2", "weights", [4, 4, 1, 1])
+		self.initialize_variable("deconv_3", "weights", [16, 16, 1, 1])
 
 #    def decoder(self, )
 
 def test_deconv2d_custom():
 
-	initialize_variable("deconv1", "deconv_weights", [4,4])
-	initialize_variable("deconv2", "deconv_weights", [4,4])
-
 	sess = tf.InteractiveSession()
 	model = rsrcnn(sess=sess)
+
 	inp_tensor = tf.constant([ 
 								[[1,1,1],[1,1,1],[1,1,1]],
 								[[2,2,2],[2,2,2],[2,2,2]]
 							],
 							 dtype="float32")
 
-	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv1")
-	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv2")
+	model.initialize_variable("deconv_1", "weights", [4,4])
+	model.initialize_variable("deconv_2", "weights", [4,4])
 
-
-def initialize_variable(scope_name, var_name, shape):
-    with tf.variable_scope(scope_name) as scope:
-        v = tf.get_variable(var_name, shape)
-        #scope.reuse_variable()
-	
+	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv_1")
+	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv_2")
 
 
 if __name__ == '__main__':
@@ -306,9 +506,8 @@ if __name__ == '__main__':
 	# sys.exit()
 
 	sess = tf.Session()
-	imgs = tf.placeholder(tf.float32, [None, 375, 375, 3])
-	groundtruths = tf.placeholder(tf.float32, [None, 375, 375, 3])
-	model = rsrcnn(imgs, groundtruths, 'vgg16_weights.npz', sess)
+	
+	model = rsrcnn('vgg16_c1-c13_weights', sess)
 	model.load_distance("./data/generate/patches_rotation/distances") 
 	
 	img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
