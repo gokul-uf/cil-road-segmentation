@@ -34,7 +34,7 @@ class rsrcnn:
 
 		self.sess = sess
 		self.batch_size = 10
-		self.inp_dim = 375
+		self.inp_dim = 200
 
 		self.learning_rate = FLAGS.learning_rate
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -148,7 +148,7 @@ class rsrcnn:
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
 	# input_shape  => [batch, row, col] 
-	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'VALID', name = None, stddev=1e-1):
+	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None, stddev=1e-1):
 
 		with tf.variable_scope(name, reuse=True) as scope:
 
@@ -284,13 +284,13 @@ class rsrcnn:
 				
 			else:
 
-				return tf.add(conv_output, deconv_input)
+				return tf.add(conv_input, deconv_input)
 
 	def crop(self, input_tensor, name=None):
 
 		with tf.variable_scope(name) as scope:
 
-			fraction = 375 / input_tensor.shape.as_list()[1]
+			fraction = self.inp_dim / input_tensor.shape.as_list()[1]
 
 			crop_list = []
 
@@ -415,10 +415,19 @@ class rsrcnn:
 			conv5_3 = self.conv2d(input = conv5_2, filter_shape = [3, 3, 512, 512], name = "conv5_3")
 			pool5 = self.max_pool(input = conv5_3, name = "pool5")
 
+			print("pool5 shape")
+			print(pool5.get_shape())
 
 			# No padding in c14-18 and DCs
 			conv14 = self.conv2d(input = pool5,   filter_shape = [7, 7, 512,  2048], name = "conv14")
-			conv15 = self.conv2d(input = conv14,  filter_shape = [7, 7, 2048, 512],  name = "conv15")
+			conv15 = self.conv2d(input = conv14,  filter_shape = [1, 1, 2048, 512],  name = "conv15")
+
+
+			print("conv14 shape")
+			print(conv14.get_shape())
+
+			print("conv15 shape")
+			print(conv15.get_shape())
 
 			print("conv15 shape")
 			print(conv15.get_shape())
@@ -444,7 +453,7 @@ class rsrcnn:
 			# print(deconv1.get_shape())
 
 
-			deconv1 = self.deconv2d(conv16, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 26, 26, 1], name="deconv_1")
+			deconv1 = self.deconv2d(conv16, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 13, 13, 1], name="deconv_1")
 
 			print("deconv1 shape")
 			print(deconv1.get_shape())
@@ -454,7 +463,7 @@ class rsrcnn:
 			print("fusion1 shape")
 			print(fusion1.get_shape())
 
-			deconv2 = self.deconv2d(fusion1, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 50, 50, 1], name="deconv_2")
+			deconv2 = self.deconv2d(fusion1, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 26, 26, 1], name="deconv_2")
 
 			print("deconv2 shape")
 			print(deconv2.get_shape())
@@ -464,14 +473,14 @@ class rsrcnn:
 			print("fusion2 shape")
 			print(fusion2.get_shape())
 
-			deconv3 = self.deconv2d(fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 379, 379, 1],
-									strides=(1,8,8,1), name="deconv_2")
+			deconv3 = self.deconv2d(deconv2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 208, 208, 1],
+									strides=(1,8,8,1), name="deconv_3")
 
 			print("deconv3 shape")
 			print(deconv3.get_shape())
 
 			crop = self.crop(deconv3, name="crop")
-			output = tf.reshape(crop , shape=[self.batch_size, 375, 375] )
+			output = tf.reshape(crop , shape=[self.batch_size, self.inp_dim, self.inp_dim] )
 
 			print("crop shape")
 			print(output.get_shape())
@@ -534,7 +543,7 @@ class rsrcnn:
 
 		self.initialize_variable("conv14", "weights", [7, 7, 512,  2048])
 		self.initialize_variable("conv14", "biases" ,             [2048])
-		self.initialize_variable("conv15", "weights", [7, 7, 2048, 512])
+		self.initialize_variable("conv15", "weights", [1, 1, 2048, 512])
 		self.initialize_variable("conv15", "biases" ,             [512])
 
 		self.initialize_variable("conv16", "weights", [1, 1, 512,  1])
@@ -584,6 +593,7 @@ if __name__ == '__main__':
 	
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
 
+	print("model creation done!")
 	# model.load_distance("../generate/patches/dst/") 
 	
 	# img1 = misc.imread('hotdog.jpg', mode='RGB') # example of image
