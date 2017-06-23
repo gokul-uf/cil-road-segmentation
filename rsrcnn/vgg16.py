@@ -29,9 +29,9 @@ class rsrcnn:
 		self.sess = sess
 		self.batch_size = 10
 		self.imgs = tf.placeholder(tf.float32, [self.batch_size, 200, 200, 3])
-		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, 200, 200, 3])
+		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, 200, 200])
 		self.distances = tf.placeholder(tf.float32, [self.batch_size, 200, 200])
-		self.diatances_max = tf.placeholder(tf.float32, [self.batch_size])
+		self.distances_max = [self.batch_size]
 		self.conv = {}
 		self.pool = {}
 		self.fc   = {}
@@ -39,6 +39,8 @@ class rsrcnn:
 
 		if weights is not None and sess is not None:
 			self.load_vgg16_weights(weights, 'rsrcnn')
+
+		self.compute_distaces()	
 
 	def load_vgg16_weights(self, weights_dir, name=None):
 
@@ -108,6 +110,10 @@ class rsrcnn:
 			conv5_2_W = tf.get_variable(initializer=tf.constant(conv5_2_W_np), name='conv5_2/weights')
 
 		print("params of C1-13 of vgg16 successfully loaded!")
+
+	def compute_distaces(self, name=None):
+		self.distances_max = tf.reduce_max(self.distances, axis=[1,2])
+
 
 	def conv2d(self, input, filter_shape, strides = (1,1,1,1), activation = tf.nn.relu, pad = "SAME", name = None, stddev=1e-1):
 		#print("In conv2d")
@@ -516,6 +522,8 @@ if __name__ == '__main__':
 	# sys.exit()
 
 	sess = tf.Session()
+	init = tf.initialize_all_variables()
+	sess.run(init)
 	
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
 
@@ -534,7 +542,6 @@ if __name__ == '__main__':
 	for file in listdir(DISTANCES_PATH):
 		distance_image = ndimage.imread(DISTANCES_PATH + file, mode = 'L')
 		distances.append(distance_image)
-		distances_max.append(np.amax(distance_image))
 
 	# print(len(images))	
 	# validation_size = int(len(images) / 10)
@@ -559,32 +566,36 @@ if __name__ == '__main__':
  #                                    	[validation_images, validation_groundtruths],
  #                                    	batch_size=BATCH_SIZE)
 
-	#print(train_images_batch)
 	# img1 = misc.imread(IMAGES_PATH + "10078660_15_00000.png", mode='RGB') # example of image
 	# img1 = misc.imresize(img1, (200, 200))
 
-	# validation_images = images[0:int(len(images) / 10)]
-	# train_images = images[int(len(images) / 10) :]
+	validation_images = images[0:int(len(images) / 10)]
+	train_images = images[int(len(images) / 10) :]
 
-	# validation_groundtruths = groundtruths[0:int(len(groundtruths) / 10)]
-	# train_groundtruths = groundtruths[int(len(groundtruths) / 10) :]
+	validation_groundtruths = groundtruths[0:int(len(groundtruths) / 10)]
+	train_groundtruths = groundtruths[int(len(groundtruths) / 10) :]
 
-	# validation_distances = distances[0:int(len(distances) / 10)]
-	# train_distances = distances[int(len(distances) / 10) :]
+	validation_distances = distances[0:int(len(distances) / 10)]
+	train_distances = distances[int(len(distances) / 10) :]
 
-	# validation_distances_max = distances_max[0:int(len(distances_max) / 10)]
-	# train_distances_max = distances_max[int(len(distances_max) / 10) :]
+	print(train_distances[0].shape)
+	print(train_groundtruths[0].shape)
+	print(train_images[0].shape)
 
-	# for i in range(int(len(images) / BATCH_SIZE)):
-	# 	sess.run(model.output, feed_dict={train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE], 
-	# 									  train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-	# 									  train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-	# 									  train_distances_max[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]})[0]
 
-	prob = sess.run(model.output, feed_dict=train_images)[0]
-	preds = (np.argsort(prob)[::-1])[0:5]
-	for p in preds:
-	 	print(class_names[p], prob[p])
+	for i in range(int(len(images) / BATCH_SIZE)):
+		sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+										  model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+										  model.imgs : train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
+										  })
+
+
+
+
+	# prob = sess.run(model.output, feed_dict={[img1]})[0]
+	# preds = (np.argsort(prob)[::-1])[0:5]
+	# for p in preds:
+	#  	print(class_names[p], prob[p])
 
 
 '''
