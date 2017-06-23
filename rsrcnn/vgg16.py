@@ -7,11 +7,21 @@ import sys
 import os
 from os import listdir
 from scipy import ndimage
+import random
 
 tf.app.flags.DEFINE_float("learning_rate"             , 0.001 , "Learning rate.")
 tf.app.flags.DEFINE_float("max_gradient_norm"         , 5.0   , "Clip gradients to this norm.")
 
 FLAGS = tf.app.flags.FLAGS
+
+
+IMAGES_PATH = "../data/mhui/generate/patches_rotation/images/"
+GROUNDTRUTHS_PATH = "../data/mhui/generate/patches_rotation/groundtruth/"
+DISTANCES_PATH = "../data/mhui/generate/patches_rotation/distance/"
+
+IMAGE_HEIGHT = 200
+IMAGE_WIDTH = 200
+BATCH_SIZE = 10
 
 class rsrcnn:
 
@@ -33,6 +43,7 @@ class rsrcnn:
 		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
 		self.distances    = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
 		self.distances_max = tf.placeholder(tf.float32, [None])
+
 		self.conv = {}
 		self.pool = {}
 		self.fc   = {}
@@ -43,6 +54,8 @@ class rsrcnn:
 			self.load_vgg16_weights(weights, 'rsrcnn')
 
 		self.build_optimizer()
+
+		self.compute_distaces()	
 
 	def load_vgg16_weights(self, weights_dir, name=None):
 
@@ -112,6 +125,10 @@ class rsrcnn:
 			conv5_2_W = tf.get_variable(initializer=tf.constant(conv5_2_W_np), name='conv5_2/weights')
 
 		print("params of C1-13 of vgg16 successfully loaded!")
+
+	def compute_distaces(self, name=None):
+		self.distances_max = tf.reduce_max(self.distances, axis=[1,2])
+
 
 	def conv2d(self, input, filter_shape, strides = (1,1,1,1), activation = tf.nn.relu, pad = "SAME", name = None, stddev=1e-1):
 		#print("In conv2d")
@@ -532,6 +549,9 @@ class rsrcnn:
 		self.initialize_variable("deconv_2", "weights", [4, 4, 1, 1])
 		self.initialize_variable("deconv_3", "weights", [16, 16, 1, 1])
 
+		
+			
+
 #    def decoder(self, )
 
 def test_deconv2d_custom():
@@ -552,12 +572,15 @@ def test_deconv2d_custom():
 	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv_2")
 
 
+
 if __name__ == '__main__':
 
 	# test_deconv2d_custom()
 	# sys.exit()
 
 	sess = tf.Session()
+	init = tf.initialize_all_variables()
+	sess.run(init)
 	
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
 
@@ -570,6 +593,77 @@ if __name__ == '__main__':
 	# preds = (np.argsort(prob)[::-1])[0:5]
 	# for p in preds:
 	# 	print(class_names[p], prob[p])
+
+	images = [] 
+	for file in listdir(IMAGES_PATH):
+		image = ndimage.imread(IMAGES_PATH + file)
+		images.append(image)
+
+	groundtruths = []
+	for file in listdir(GROUNDTRUTHS_PATH):
+		groundtruth = ndimage.imread(GROUNDTRUTHS_PATH + file, mode = 'L')
+		groundtruths.append(groundtruth)		
+
+	distances = []
+	distances_max = []
+	for file in listdir(DISTANCES_PATH):
+		distance_image = ndimage.imread(DISTANCES_PATH + file, mode = 'L')
+		distances.append(distance_image)
+
+	# print(len(images))	
+	# validation_size = int(len(images) / 10)
+	# partitions = [0] * len(images)
+	# partitions[:validation_size] = [1] * validation_size
+	# random.shuffle(partitions)
+	# print(partitions)
+
+	# train_images, validation_images = tf.dynamic_partition(images, partitions, 2)
+	# train_groundtruths, validation_groundtruths = tf.dynamic_partition(groundtruths, partitions, 2)	
+
+	# # define tensor shape
+	# train_images.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, 3])
+	# validation_images.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, 3])
+	# train_groundtruths.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, 1])
+	# validation_groundtruths.set_shape([IMAGE_HEIGHT, IMAGE_WIDTH, 1])
+
+	# train_images_batch, train_groundtruths_batch = tf.train.batch(
+ #                                    	[train_images, train_groundtruths],
+ #                                    	batch_size=BATCH_SIZE)
+	# validation_images_batch, validation_groundtruths_batch = tf.train.batch(
+ #                                    	[validation_images, validation_groundtruths],
+ #                                    	batch_size=BATCH_SIZE)
+
+	# img1 = misc.imread(IMAGES_PATH + "10078660_15_00000.png", mode='RGB') # example of image
+	# img1 = misc.imresize(img1, (200, 200))
+
+	validation_images = images[0:int(len(images) / 10)]
+	train_images = images[int(len(images) / 10) :]
+
+	validation_groundtruths = groundtruths[0:int(len(groundtruths) / 10)]
+	train_groundtruths = groundtruths[int(len(groundtruths) / 10) :]
+
+	validation_distances = distances[0:int(len(distances) / 10)]
+	train_distances = distances[int(len(distances) / 10) :]
+
+	print(train_distances[0].shape)
+	print(train_groundtruths[0].shape)
+	print(train_images[0].shape)
+
+
+	for i in range(int(len(images) / BATCH_SIZE)):
+		sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+										  model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+										  model.imgs : train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
+										  })
+
+
+
+
+	# prob = sess.run(model.output, feed_dict={[img1]})[0]
+	# preds = (np.argsort(prob)[::-1])[0:5]
+	# for p in preds:
+	#  	print(class_names[p], prob[p])
+
 
 
 '''
