@@ -648,7 +648,7 @@ if __name__ == '__main__':
 
 	validation_distances = distances[0:int(len(distances) / 10)]
 	train_distances = distances[int(len(distances) / 10) :]
-
+	
 	print(train_distances[0].shape)
 	print(train_groundtruths[0].shape)
 	print(train_images[0].shape)
@@ -656,6 +656,7 @@ if __name__ == '__main__':
 	model.sess.run(tf.global_variables_initializer())
 
 	print("All variables initialized.")
+
 
 	for i in range(int(len(images) / BATCH_SIZE)):
 		sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
