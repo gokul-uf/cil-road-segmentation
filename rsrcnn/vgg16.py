@@ -13,10 +13,10 @@ from tqdm import tqdm
 import time
 
 
-tf.app.flags.DEFINE_float("learning_rate"               , 0.001 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-12 , "Learning rate.")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
-tf.app.flags.DEFINE_integer("batch_size"                , 10    , "batch size.")
+tf.app.flags.DEFINE_integer("batch_size"                , 5    , "batch size.")
 tf.app.flags.DEFINE_integer("num_epochs"                , 5000  , "number of epochs.")
 
 tf.app.flags.DEFINE_string("IMAGES_PATH"       , "./data/CIL/generate/patches/sat/", "path to images.")
