@@ -13,7 +13,8 @@ from tqdm import tqdm
 import time
 
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-12 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-4 , "Learning rate.")
+tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
 tf.app.flags.DEFINE_integer("batch_size"                , 5    , "batch size.")
@@ -44,6 +45,7 @@ class rsrcnn:
 		self.output = None
 
 		self.learning_rate = FLAGS.learning_rate
+		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
 
 		self.imgs         = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim, 3])
@@ -470,14 +472,18 @@ class rsrcnn:
 		print("loss shape")
 		print(self.loss.get_shape())
 
-		self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+		#self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+		self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
+		
 
-		self.gradients = self.optimizer.compute_gradients(self.loss)
+		# self.gradients = self.optimizer.compute_gradients(self.loss)
 
-		self.capped_gradients = [( tf.clip_by_value( grad, -self.max_gradient_norm, self.max_gradient_norm ), variable ) for
-																		grad, variable in self.gradients if grad is not None]
+		# self.capped_gradients = [( tf.clip_by_value( grad, -self.max_gradient_norm, self.max_gradient_norm ), variable ) for
+		# 																grad, variable in self.gradients if grad is not None]
 
-		self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
+		# self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
+
+		self.train_op = self.optimizer.minimize(self.loss)
 
 	def initialize_variable(self, scope_name, var_name, shape):
 		with tf.variable_scope(scope_name) as scope:
