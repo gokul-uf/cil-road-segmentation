@@ -578,12 +578,14 @@ if __name__ == '__main__':
 	for file in listdir(FLAGS.IMAGES_PATH):
 		image = ndimage.imread(FLAGS.IMAGES_PATH + file)
 		images.append(image)
+	print("Number of images: {0}".format(len(images)))
 
 	print("Reading labels")
 	groundtruths = []
 	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
 		groundtruth = ndimage.imread(FLAGS.GROUNDTRUTHS_PATH + file, mode = 'L')
-		groundtruths.append(groundtruth)		
+		groundtruths.append(groundtruth)
+	print("Number of groundtruths: {0}".format(len(groundtruths)))	
 
 	print("Reading distances")
 	distances = []
@@ -591,6 +593,7 @@ if __name__ == '__main__':
 	for file in listdir(FLAGS.DISTANCES_PATH):
 		distance_image = ndimage.imread(FLAGS.DISTANCES_PATH + file, mode = 'L')
 		distances.append(f_function(distance_image))
+	print("Number of distances: {0}".format(len(distances)))	
 
 
 	print("Randomizing inputs")
