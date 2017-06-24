@@ -8,6 +8,7 @@ import os
 from os import listdir
 from scipy import ndimage
 import random
+import tqdm
 
 
 tf.app.flags.DEFINE_float("learning_rate"               , 0.001 , "Learning rate.")
@@ -16,9 +17,10 @@ tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradient
 tf.app.flags.DEFINE_integer("batch_size"                , 10    , "batch size.")
 tf.app.flags.DEFINE_integer("num_epochs"                , 1000  , "number of epochs.")
 
-tf.app.flags.DEFINE_string("IMAGES_PATH"       , "../data/CIL/generate/patches/sat/", "path to images.")
-tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "../data/CIL/generate/patches/org/", "path to labels.")
-tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "../data/CIL/generate/patches/dst/", "path to distances.")
+tf.app.flags.DEFINE_string("IMAGES_PATH"       , "./data/CIL/generate/patches/sat/", "path to images.")
+tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "./data/CIL/generate/patches/org/", "path to labels.")
+tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "./data/CIL/generate/patches/dst/", "path to distances.")
+tf.app.flags.DEFINE_string("WEIGHTS_PATH"      , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
 tf.app.flags.DEFINE_string("train_dir"         , "train_dir/", "Directory to save trained model.")
 tf.app.flags.DEFINE_string("summaries_dir"    , "../data/CIL/generate/summaries", "path to summaries.")
 
@@ -580,7 +582,7 @@ if __name__ == '__main__':
 	sess = tf.Session()
 
 	print("Creating model")
-	model = rsrcnn('vgg16_c1-c13_weights', sess)
+	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
 
 	print("Reading images")
 	images = []
