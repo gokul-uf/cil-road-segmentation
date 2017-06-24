@@ -458,7 +458,6 @@ class rsrcnn:
 
 			# print("crop shape")
 			# print(output.get_shape())
-
 			self.output = output
 
 			print("building model done")
@@ -578,8 +577,7 @@ if __name__ == '__main__':
 
 	print("Creating model")
 	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
-	tf.summary.image('image-output', model.output)
-	tf.summary.image('image-input', model.imgs)
+	tf.summary.image('image-output', tf.expand_dims(model.output, -1))
 
 	print("Reading images")
 	images = []
