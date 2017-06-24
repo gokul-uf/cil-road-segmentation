@@ -8,7 +8,7 @@ import os
 from os import listdir
 from scipy import ndimage
 import random
-from tqdm import tqdm 
+from tqdm import tqdm
 
 
 tf.app.flags.DEFINE_float("learning_rate"               , 0.001 , "Learning rate.")
@@ -39,6 +39,7 @@ class rsrcnn:
 		self.sess = sess
 		self.batch_size = FLAGS.batch_size
 		self.inp_dim = 200
+		self.output = None
 
 		self.learning_rate = FLAGS.learning_rate
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -577,6 +578,7 @@ if __name__ == '__main__':
 
 	print("Creating model")
 	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
+	tf.summary.image('image', self.output)
 
 	print("Reading images")
 	images = []
