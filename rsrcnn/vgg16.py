@@ -19,6 +19,7 @@ tf.app.flags.DEFINE_integer("num_epochs"                , 1000  , "number of epo
 tf.app.flags.DEFINE_string("IMAGES_PATH"       , "../data/CIL/generate/patches/sat/", "path to images.")
 tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "../data/CIL/generate/patches/org/", "path to labels.")
 tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "../data/CIL/generate/patches/dst/", "path to distances.")
+tf.app.flags.DEFINE_string("train_dir"         , "train_dir/", "Directory to save trained model.")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -56,6 +57,8 @@ class rsrcnn:
 		self.build_optimizer()
 
 		self.compute_distaces()	
+
+		self.saver = tf.train.Saver(max_to_keep=3)
 
 	def load_vgg16_weights(self, weights_dir, name=None):
 
@@ -337,7 +340,7 @@ class rsrcnn:
 		# print("groundtruths_cmpl shape")
 		# print(groundtruths_cmpl.get_shape())
 
-		loss = ( (exp_dists * self.output) * groundtruths_cmpl ) + \
+		loss = ( exp_dists * self.output * groundtruths_cmpl ) + \
 			( tf.log(1+tf.exp(-self.output)) * (self.groundtruths + (groundtruths_cmpl*exp_dists) ) )
 
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
@@ -474,10 +477,10 @@ class rsrcnn:
 		self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
 
 	def initialize_variable(self, scope_name, var_name, shape):
-	    with tf.variable_scope(scope_name) as scope:
-	        v = tf.get_variable(var_name, shape)
-	        #print(v.name)
-	        #scope.reuse_variable()
+		with tf.variable_scope(scope_name) as scope:
+			v = tf.get_variable(var_name, shape)
+			#print(v.name)
+			#scope.reuse_variable()
 
 	def initialize_all_variables(self):
 
@@ -529,7 +532,11 @@ class rsrcnn:
 		self.initialize_variable("deconv_2", "weights", [4, 4, 1, 1])
 		self.initialize_variable("deconv_3", "weights", [16, 16, 1, 1])
 
-					
+	def save(self, sess, epoch):
+		file_name = "epoch_" + str(epoch) + ".ckpt"
+		self.checkpoint_path = os.path.join(FLAGS.train_dir, file_name)
+		self.saver.save(sess, self.checkpoint_path)
+			
 def test_deconv2d_custom():
 
 	sess = tf.InteractiveSession()
@@ -603,32 +610,81 @@ if __name__ == '__main__':
 
 	images, groundtruths, distances = zip(*zipped_list)
 
-	validation_images = images[0:int(len(images) / 10)]
-	train_images = images[int(len(images) / 10) :]
+	# number of total patches = 381
+	# validation = 21
+	# training = 360
 
-	validation_groundtruths = groundtruths[0:int(len(groundtruths) / 10)]
-	train_groundtruths = groundtruths[int(len(groundtruths) / 10) :]
+	val_images = images[0:21]
+	train_images = images[21:]
 
-	validation_distances = distances[0:int(len(distances) / 10)]
-	train_distances = distances[int(len(distances) / 10) :]
+	val_groundtruths = groundtruths[0:21]
+	train_groundtruths = groundtruths[21:]
+
+	val_distances = distances[0:21]
+	train_distances = distances[21:]
 
 
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
 
+	sys.exit()
+
 	print("Starting training")
+
+	val_loss_last_2_epochs = [-10, -10]
+
 	for epoch in range(FLAGS.num_epochs):
 
 		print("Epoch {0} started".format(epoch))
-		for i in range(len(train_images) // FLAGS.batch_size):
-			sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-											  model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-											  model.imgs : train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
-											  })
+		sys.stdout.flush()
 
+		train_loss = 0
+		# iterate on batches
+		for i in range(len(train_images) // FLAGS.batch_size):
+
+			fd = {	model.distances    : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+					model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+					model.imgs         : train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
+				}
+
+			_, train_loss = sess.run([model.train_op, model.loss], feed_dict=fd)
+
+		print("Epoch {0} done".format(epoch))
+		print("training loss = {0}".format(train_loss))
+		sys.stdout.flush()
+		
+		val_losses = []
+		# validate on validation set
+		for i in range(len(val_images) // FLAGS.batch_size):
+
+			fd = {	model.distances    : val_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+					model.groundtruths : val_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
+					model.imgs         : val_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
+					}
+
+			output, loss = sess.run([model.output, model.loss], feed_dict=fd)
+			val_losses.append(loss)
+
+		avg_val_loss = sum(val_losses)/len(val_losses)
+		print( "validation loss = {0}".format(avg_val_loss) )
+		sys.stdout.flush()
+
+		model.save(sess, epoch)
+
+		# exit if validation loss starts increasing
+		if avg_val_loss > val_loss_last_2_epochs[1]  and avg_val_loss > val_loss_last_2_epochs[0]:
+
+			print("Epoch {0}: avg val loss greater than last 2 epoch. Saving model and exiting!".format(epoch))
+			sys.exit()
+
+		else:
+			val_loss_last_2_epochs[0], val_loss_last_2_epochs[1] = val_loss_last_2_epochs[1], avg_val_loss
+
+
+		# Shuffle the training set again
 		zipped_list = list(zip(train_images, train_groundtruths, train_distances))
 		np.random.shuffle(zipped_list)
 		train_images, train_groundtruths, train_distances = zip(*zipped_list)
 
 
-
+	model.save(sess, FLAGS.num_epochs)
