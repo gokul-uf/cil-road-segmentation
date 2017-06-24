@@ -617,8 +617,6 @@ if __name__ == '__main__':
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
 
-	sys.exit()
-
 	print("Starting training")
 
 	val_loss_last_2_epochs = [-10, -10]
