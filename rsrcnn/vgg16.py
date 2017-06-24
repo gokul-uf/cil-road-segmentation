@@ -24,7 +24,7 @@ tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "./data/CIL/generate/patches/or
 tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "./data/CIL/generate/patches/dst/", "path to distances.")
 tf.app.flags.DEFINE_string("WEIGHTS_PATH"      , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
 tf.app.flags.DEFINE_string("train_dir"         , "./rsrcnn/train_dir/", "Directory to save trained model.")
-tf.app.flags.DEFINE_string("summaries_dir"    , "../data/CIL/generate/summaries", "path to summaries.")
+tf.app.flags.DEFINE_string("summaries_dir"    , "/data/CIL/generate/summaries", "path to summaries.")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -466,7 +466,7 @@ class rsrcnn:
 	def build_optimizer(self):
 
 		self.loss = self.overall_loss()
-		tf.summary.scalar('loss', self.loss)
+		#tf.summary.scalar('loss', self.loss)
 		print("loss shape")
 		print(self.loss.get_shape())
 
@@ -578,7 +578,7 @@ if __name__ == '__main__':
 
 	print("Creating model")
 	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
-	tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+	#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
 
 	print("Reading images")
 	images = []
@@ -623,10 +623,10 @@ if __name__ == '__main__':
 	val_distances = distances[0:21]
 	train_distances = distances[21:]
 
-	merged = tf.summary.merge_all()
-	train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
-                                      sess.graph)
-	test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
+	#merged = tf.summary.merge_all()
+	# train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
+ #                                      sess.graph)
+	# test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
@@ -651,9 +651,9 @@ if __name__ == '__main__':
 					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
 				}
 
-			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
+			_, train_loss = sess.run([model.train_op, model.loss], feed_dict=fd)
 
-			train_writer.add_summary(summary, i)
+			#train_writer.add_summary(summary, i)
 
 		end = time.time()
 		print("Epoch {0} done. Time take = {1}".format( epoch, (end-start)/60 ))
@@ -669,9 +669,9 @@ if __name__ == '__main__':
 					model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
 					}
 
-			output, loss, summary = sess.run([model.output, model.loss, merged], feed_dict=fd)
+			output, loss = sess.run([model.output, model.loss], feed_dict=fd)
 			val_losses.append(loss)
-			test_writer.add_summary(summary, i)
+			#test_writer.add_summary(summary, i)
 
 		avg_val_loss = sum(val_losses)/len(val_losses)
 		print( "validation loss = {0}".format(avg_val_loss) )
