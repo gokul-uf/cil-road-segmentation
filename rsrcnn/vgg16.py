@@ -15,7 +15,7 @@ tf.app.flags.DEFINE_float("learning_rate"               , 0.001 , "Learning rate
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
 tf.app.flags.DEFINE_integer("batch_size"                , 10    , "batch size.")
-tf.app.flags.DEFINE_integer("num_epochs"                , 1000  , "number of epochs.")
+tf.app.flags.DEFINE_integer("num_epochs"                , 5000  , "number of epochs.")
 
 tf.app.flags.DEFINE_string("IMAGES_PATH"       , "./data/CIL/generate/patches/sat/", "path to images.")
 tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "./data/CIL/generate/patches/org/", "path to labels.")
@@ -46,7 +46,6 @@ class rsrcnn:
 		self.imgs         = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim, 3])
 		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
 		self.distances    = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
-		self.distances_max = tf.placeholder(tf.float32, [None])
 
 		self.conv = {}
 		self.pool = {}
@@ -631,12 +630,14 @@ if __name__ == '__main__':
 
 	print("Starting training")
 
-	val_loss_last_2_epochs = [-10, -10]
+	val_loss_last_2_epochs = [float("inf"), float("inf")]
 
 	for epoch in range(FLAGS.num_epochs):
 
 		print("Epoch {0} started".format(epoch))
 		sys.stdout.flush()
+
+		start = time.time()
 
 		train_loss = 0
 		# iterate on batches
@@ -648,9 +649,11 @@ if __name__ == '__main__':
 				}
 
 			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
+			
 			if i % 10 == 0: train_writer.add_summary(summary, i)
 
-		print("Epoch {0} done".format(epoch))
+		end = time.time()
+		print("Epoch {0} done. Time take = {1}".format( epoch, (end-start)/60 ))
 		print("training loss = {0}".format(train_loss))
 		sys.stdout.flush()
 
