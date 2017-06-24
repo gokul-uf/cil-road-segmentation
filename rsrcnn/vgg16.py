@@ -59,8 +59,6 @@ class rsrcnn:
 
 		self.build_optimizer()
 
-		self.compute_distaces()
-
 		self.saver = tf.train.Saver(max_to_keep=3)
 
 	def load_vgg16_weights(self, weights_dir, name=None):
@@ -560,9 +558,6 @@ def test_deconv2d_custom():
 
 def f_function(distance):
 
-	max_dist = np.sqrt(np.amax(distance))
-	threshold = 0.3 * max_dist
-
 	distance = np.sqrt(distance)
 	max_dist = np.amax(distance)
 	threshold = 0.3 * max_dist
@@ -577,7 +572,6 @@ def f_function(distance):
 if __name__ == '__main__':
 
 	# test_deconv2d_custom()
-	# sys.exit()
 
 	sess = tf.Session()
 
