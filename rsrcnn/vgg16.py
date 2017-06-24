@@ -578,7 +578,8 @@ if __name__ == '__main__':
 
 	print("Creating model")
 	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
-	tf.summary.image('image', self.output)
+	tf.summary.image('image-output', model.output)
+	tf.summary.image('image-input', model.imgs)
 
 	print("Reading images")
 	images = []
