@@ -685,6 +685,3 @@ if __name__ == '__main__':
 		zipped_list = list(zip(train_images, train_groundtruths, train_distances))
 		np.random.shuffle(zipped_list)
 		train_images, train_groundtruths, train_distances = zip(*zipped_list)
-
-
-	model.save(sess, FLAGS.num_epochs)
