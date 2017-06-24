@@ -9,7 +9,7 @@ from os import listdir
 from scipy import ndimage
 import random
 from tqdm import tqdm
-import time 
+import time
 
 
 tf.app.flags.DEFINE_float("learning_rate"               , 0.001 , "Learning rate.")
@@ -651,8 +651,8 @@ if __name__ == '__main__':
 				}
 
 			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
-			
-			if i % 10 == 0: train_writer.add_summary(summary, i)
+
+			train_writer.add_summary(summary, i)
 
 		end = time.time()
 		print("Epoch {0} done. Time take = {1}".format( epoch, (end-start)/60 ))
@@ -670,7 +670,7 @@ if __name__ == '__main__':
 
 			output, loss, summary = sess.run([model.output, model.loss, merged], feed_dict=fd)
 			val_losses.append(loss)
-			if i % 10 == 0: test_writer.add_summary(summary, i)
+			test_writer.add_summary(summary, i)
 
 		avg_val_loss = sum(val_losses)/len(val_losses)
 		print( "validation loss = {0}".format(avg_val_loss) )
