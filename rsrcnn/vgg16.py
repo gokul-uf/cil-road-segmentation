@@ -20,6 +20,7 @@ tf.app.flags.DEFINE_string("IMAGES_PATH"       , "../data/CIL/generate/patches/s
 tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "../data/CIL/generate/patches/org/", "path to labels.")
 tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "../data/CIL/generate/patches/dst/", "path to distances.")
 tf.app.flags.DEFINE_string("train_dir"         , "train_dir/", "Directory to save trained model.")
+tf.app.flags.DEFINE_string("summaries_dir"    , "../data/CIL/generate/summaries", "path to summaries.")
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -43,17 +44,20 @@ class rsrcnn:
 		self.imgs         = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim, 3])
 		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
 		self.distances    = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
+		self.distances_max = tf.placeholder(tf.float32, [None])
 
 		self.conv = {}
 		self.pool = {}
 		self.fc   = {}
-		
+
 		self.build_model('rsrcnn')
 
 		if weights is not None and sess is not None:
 			self.load_vgg16_weights(weights, 'rsrcnn')
 
 		self.build_optimizer()
+
+		self.compute_distaces()
 
 		self.saver = tf.train.Saver(max_to_keep=3)
 
@@ -126,6 +130,9 @@ class rsrcnn:
 
 		print("params of C1-13 of vgg16 successfully loaded!")
 
+	def compute_distaces(self, name=None):
+		self.distances_max = tf.reduce_max(self.distances, axis=[1,2])
+
 
 	def conv2d(self, input, filter_shape, strides = (1,1,1,1), activation = tf.nn.relu, pad = "SAME", name = None, stddev=1e-1):
 		#print("In conv2d")
@@ -141,20 +148,20 @@ class rsrcnn:
 			self.conv[name] = tf.nn.relu(out, name=scope.name)
 			self.parameters += [kernel, biases]
 			return self.conv[name]
-		 
+
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
-	# input_shape  => [batch, row, col] 
+	# input_shape  => [batch, row, col]
 	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None, stddev=1e-1):
 
 		with tf.variable_scope(name, reuse=True) as scope:
 
-			filter = tf.get_variable(initializer=tf.truncated_normal(filter_shape, 
-									dtype=tf.float32, 
+			filter = tf.get_variable(initializer=tf.truncated_normal(filter_shape,
+									dtype=tf.float32,
 									stddev=stddev),
 									name='weights')
 
-			return tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape, 
+			return tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
 				strides=strides, padding=pad)
 
 	# no padding in deconv layer
@@ -169,8 +176,8 @@ class rsrcnn:
 			fil_rows = filter_shape[0]
 			fil_cols = filter_shape[1]
 
-			filter = tf.get_variable( initializer=tf.truncated_normal(filter_shape, 
-									dtype=tf.float32, 
+			filter = tf.get_variable( initializer=tf.truncated_normal(filter_shape,
+									dtype=tf.float32,
 									stddev=stddev),
 									name='weights')
 
@@ -180,7 +187,7 @@ class rsrcnn:
 			output_rows = (input_rows-1)*stride + fil_rows
 
 			output = tf.ones([batch_size, output_rows, output_rows], dtype="float32")
-			
+
 			row_num = 0
 
 			_, num_rows, num_cols, _ = inp_tensor.get_shape();
@@ -218,7 +225,7 @@ class rsrcnn:
 		# print(output_dim)
 		# print(row_pos)
 		# print(col_pos)
-		# print(tensor_dim)	
+		# print(tensor_dim)
 
 		bottom_pad = tf.cast(output_dim-(tensor_dim+row_pos), dtype=tf.int32 )
 		right_pad  = tf.cast(output_dim-(tensor_dim+col_pos), dtype=tf.int32 )
@@ -234,18 +241,18 @@ class rsrcnn:
 		padded_out = tf.pad(tensor, paddings, "CONSTANT")
 
 		return padded_out
-	
+
 	def upsample_2d(self, input, size, name):
 	  with tf.variable_scope(name) as scope:
 		  return tf.image.resize_nearest_neighbor(input, size = size, name = name)
-		
+
 	def max_pool(self, input, ksize=[1,2,2,1], strides = [1,2,2,1], padding = "SAME", name = None):
 		#print("In max_pool")
 		with tf.variable_scope(name) as scope:
 			res = tf.nn.max_pool(value=input, ksize=ksize, strides=strides, padding=padding)
 		self.pool[name] = res
 		return res
-	
+
 	def fusion(self, deconv_input, conv_input, name):
 		with tf.variable_scope(name) as scope:
 
@@ -278,7 +285,7 @@ class rsrcnn:
 
 					return tf.add(crop_output, conv_input)
 
-				
+
 			else:
 
 				return tf.add(conv_input, deconv_input)
@@ -320,9 +327,9 @@ class rsrcnn:
 				self.fc[name] = tf.nn.relu(fcl)
 			self.parameters += [fcw, fcb]
 		return self.fc[name]
-	
-	
-	# Pass the groundtruth tf, image_index for distances 
+
+
+	# Pass the groundtruth tf, image_index for distances
 	# the loss is unnormalized
 	def overall_loss(self):
 
@@ -330,7 +337,7 @@ class rsrcnn:
 		# print("exp_dists shape")
 		# print(exp_dists.get_shape())
 
-		groundtruths_cmpl = (1-self.groundtruths)		
+		groundtruths_cmpl = (1-self.groundtruths)
 		# print("groundtruths_cmpl shape")
 		# print(groundtruths_cmpl.get_shape())
 
@@ -338,9 +345,9 @@ class rsrcnn:
 			( tf.log(1+tf.exp(-self.output)) * (self.groundtruths + (groundtruths_cmpl*exp_dists) ) )
 
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
-		
+
 	def build_model(self, name, reuse = False):
-		
+
 		self.parameters = []
 		with tf.variable_scope(name, reuse=reuse) as scope:
 
@@ -402,7 +409,7 @@ class rsrcnn:
 
 			# print("conv16 shape")
 			# print(conv16.get_shape())
-			
+
 			conv17 = self.conv2d(input = pool4,   filter_shape = [1, 1, 512,  1],    name = "conv17")
 
 			# print("conv17 shape")
@@ -450,14 +457,15 @@ class rsrcnn:
 
 			# print("crop shape")
 			# print(output.get_shape())
-			
+
 			self.output = output
 
 			print("building model done")
 
 	def build_optimizer(self):
-		
+
 		self.loss = self.overall_loss()
+		tf.summary.scalar('loss', self.loss)
 		print("loss shape")
 		print(self.loss.get_shape())
 
@@ -465,7 +473,7 @@ class rsrcnn:
 
 		self.gradients = self.optimizer.compute_gradients(self.loss)
 
-		self.capped_gradients = [( tf.clip_by_value( grad, -self.max_gradient_norm, self.max_gradient_norm ), variable ) for 
+		self.capped_gradients = [( tf.clip_by_value( grad, -self.max_gradient_norm, self.max_gradient_norm ), variable ) for
 																		grad, variable in self.gradients if grad is not None]
 
 		self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
@@ -530,13 +538,13 @@ class rsrcnn:
 		file_name = "epoch_" + str(epoch) + ".ckpt"
 		self.checkpoint_path = os.path.join(FLAGS.train_dir, file_name)
 		self.saver.save(sess, self.checkpoint_path)
-			
+
 def test_deconv2d_custom():
 
 	sess = tf.InteractiveSession()
 	model = rsrcnn(sess=sess)
 
-	inp_tensor = tf.constant([ 
+	inp_tensor = tf.constant([
 								[[1,1,1],[1,1,1],[1,1,1]],
 								[[2,2,2],[2,2,2],[2,2,2]]
 							],
@@ -549,7 +557,10 @@ def test_deconv2d_custom():
 	model.deconv2d_custom(inp_tensor, filter_shape=[4,4], name="deconv_2")
 
 def f_function(distance):
-	
+
+	max_dist = np.sqrt(np.amax(distance))
+	threshold = 0.3 * max_dist
+
 	distance = np.sqrt(distance)
 	max_dist = np.amax(distance)
 	threshold = 0.3 * max_dist
@@ -558,7 +569,7 @@ def f_function(distance):
 	distance[(distance > 0) & (distance < threshold)] /= max_dist
 	distance[distance > threshold] = threshold / max_dist
 
-	return distance  
+	return distance
 
 
 if __name__ == '__main__':
@@ -567,12 +578,12 @@ if __name__ == '__main__':
 	# sys.exit()
 
 	sess = tf.Session()
-	
+
 	print("Creating model")
 	model = rsrcnn('vgg16_c1-c13_weights', sess)
 
 	print("Reading images")
-	images = [] 
+	images = []
 	for file in listdir(FLAGS.IMAGES_PATH):
 		image = ndimage.imread(FLAGS.IMAGES_PATH + file)
 		images.append(image)
@@ -583,14 +594,15 @@ if __name__ == '__main__':
 	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
 		groundtruth = ndimage.imread(FLAGS.GROUNDTRUTHS_PATH + file, mode = 'L')
 		groundtruths.append(groundtruth)
-	print("Number of groundtruths: {0}".format(len(groundtruths)))	
+	print("Number of groundtruths: {0}".format(len(groundtruths)))
 
 	print("Reading distances")
 	distances = []
+	distances_max = []
 	for file in listdir(FLAGS.DISTANCES_PATH):
 		distance_image = ndimage.imread(FLAGS.DISTANCES_PATH + file, mode = 'L')
 		distances.append(f_function(distance_image))
-	print("Number of distances: {0}".format(len(distances)))	
+	print("Number of distances: {0}".format(len(distances)))
 
 
 	print("Randomizing inputs")
@@ -613,11 +625,15 @@ if __name__ == '__main__':
 	val_distances = distances[0:21]
 	train_distances = distances[21:]
 
+	merged = tf.summary.merge_all()
+	train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
+                                      sess.graph)
+	test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
 
-	sys.exit()
+	# sys.exit()
 
 	print("Starting training")
 
@@ -630,30 +646,32 @@ if __name__ == '__main__':
 
 		train_loss = 0
 		# iterate on batches
-		for i in range(len(train_images) // FLAGS.batch_size):
+		for i in tqdm(range(len(train_images) // FLAGS.batch_size)):
 
-			fd = {	model.distances    : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-					model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-					model.imgs         : train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
+			fd = {	model.distances    : train_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+					model.groundtruths : train_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
 				}
 
-			_, train_loss = sess.run([model.train_op, model.loss], feed_dict=fd)
+			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
+			if i % 10 == 0: train_writer.add_summary(summary, i)
 
 		print("Epoch {0} done".format(epoch))
 		print("training loss = {0}".format(train_loss))
 		sys.stdout.flush()
-		
+
 		val_losses = []
 		# validate on validation set
-		for i in range(len(val_images) // FLAGS.batch_size):
+		for i in tqdm(range(len(val_images) // FLAGS.batch_size)):
 
-			fd = {	model.distances    : val_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-					model.groundtruths : val_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
-					model.imgs         : val_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
+			fd = {	model.distances    : val_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+					model.groundtruths : val_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+					model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
 					}
 
-			output, loss = sess.run([model.output, model.loss], feed_dict=fd)
+			output, loss, summary = sess.run([model.output, model.loss, merged], feed_dict=fd)
 			val_losses.append(loss)
+			if i % 10 == 0: test_writer.add_summary(summary, i)
 
 		avg_val_loss = sum(val_losses)/len(val_losses)
 		print( "validation loss = {0}".format(avg_val_loss) )
@@ -675,6 +693,5 @@ if __name__ == '__main__':
 		zipped_list = list(zip(train_images, train_groundtruths, train_distances))
 		np.random.shuffle(zipped_list)
 		train_images, train_groundtruths, train_distances = zip(*zipped_list)
-
 
 	model.save(sess, FLAGS.num_epochs)
