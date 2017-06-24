@@ -20,7 +20,7 @@ tf.app.flags.DEFINE_integer("num_epochs"                , 5000  , "number of epo
 tf.app.flags.DEFINE_string("IMAGES_PATH"       , "./data/CIL/generate/patches/sat/", "path to images.")
 tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "./data/CIL/generate/patches/org/", "path to labels.")
 tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "./data/CIL/generate/patches/dst/", "path to distances.")
-tf.app.flags.DEFINE_string("WEIGHTS_PATH"      , "/vgg16_c1-c13_weights", "path to weights.")
+tf.app.flags.DEFINE_string("WEIGHTS_PATH"      , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
 tf.app.flags.DEFINE_string("train_dir"         , "train_dir/", "Directory to save trained model.")
 tf.app.flags.DEFINE_string("summaries_dir"    , "../data/CIL/generate/summaries", "path to summaries.")
 
