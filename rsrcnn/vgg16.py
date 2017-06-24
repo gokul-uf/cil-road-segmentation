@@ -9,6 +9,7 @@ from os import listdir
 from scipy import ndimage
 import random
 
+
 tf.app.flags.DEFINE_float("learning_rate"               , 0.001 , "Learning rate.")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -21,9 +22,6 @@ tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "../data/CIL/generate/patches/d
 
 FLAGS = tf.app.flags.FLAGS
 
-IMAGE_HEIGHT = 200
-IMAGE_WIDTH = 200
-
 
 class rsrcnn:
 
@@ -35,7 +33,7 @@ class rsrcnn:
 			return
 
 		self.sess = sess
-		self.batch_size = 10
+		self.batch_size = FLAGS.batch_size
 		self.inp_dim = 200
 
 		self.learning_rate = FLAGS.learning_rate
@@ -554,17 +552,15 @@ def f_function(distance):
 	max_dist = np.sqrt(np.amax(distance))
 	threshold = 0.3 * max_dist
 
-	#distance[distance == 0] = 0
+	distance = np.sqrt(distance)
+	max_dist = np.amax(distance)
+	threshold = 0.3 * max_dist
 
-	def map_value(x):
-		if x==0:
-			return 0
-		elif x>0 and x<=threshold:
-			return x/max_dist
-		elif x>threshold:
-			return threshold/max_dist 
-	
-	return np.vectorize(map_value)(distance)  
+	distance[distance == 0] = 0
+	distance[(distance > 0) & (distance < threshold)] /= max_dist
+	distance[distance > threshold] = threshold / max_dist
+
+	return distance  
 
 
 if __name__ == '__main__':
@@ -621,7 +617,7 @@ if __name__ == '__main__':
 	for epoch in range(FLAGS.num_epochs):
 
 		print("Epoch {0} started".format(epoch))
-		for i in range(len(train_images) // BATCH_SIZE):
+		for i in range(len(train_images) // FLAGS.batch_size):
 			sess.run(model.output, feed_dict={model.distances : train_distances[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
 											  model.groundtruths : train_groundtruths[i * BATCH_SIZE: (i + 1) * BATCH_SIZE],
 											  model.imgs : train_images[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
