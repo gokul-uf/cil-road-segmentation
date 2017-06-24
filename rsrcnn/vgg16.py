@@ -678,16 +678,17 @@ if __name__ == '__main__':
 		print( "validation loss = {0}".format(avg_val_loss) )
 		sys.stdout.flush()
 
-		model.save(sess, epoch)
+		if epoch%100 == 0:
+			model.save(sess, epoch)
 
 		# exit if validation loss starts increasing
-		if avg_val_loss > val_loss_last_2_epochs[1]  and avg_val_loss > val_loss_last_2_epochs[0]:
+		# if avg_val_loss > val_loss_last_2_epochs[1]  and avg_val_loss > val_loss_last_2_epochs[0]:
 
-			print("Epoch {0}: avg val loss greater than last 2 epoch. Saving model and exiting!".format(epoch))
-			sys.exit()
+		# 	print("Epoch {0}: avg val loss greater than last 2 epoch. Saving model and exiting!".format(epoch))
+		# 	sys.exit()
 
-		else:
-			val_loss_last_2_epochs[0], val_loss_last_2_epochs[1] = val_loss_last_2_epochs[1], avg_val_loss
+		# else:
+		#	val_loss_last_2_epochs[0], val_loss_last_2_epochs[1] = val_loss_last_2_epochs[1], avg_val_loss
 
 
 		# Shuffle the training set again
