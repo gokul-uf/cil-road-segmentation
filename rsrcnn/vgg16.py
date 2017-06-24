@@ -9,6 +9,7 @@ from os import listdir
 from scipy import ndimage
 import random
 from tqdm import tqdm
+import time 
 
 
 tf.app.flags.DEFINE_float("learning_rate"               , 0.001 , "Learning rate.")
