@@ -43,7 +43,6 @@ class rsrcnn:
 		self.imgs         = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim, 3])
 		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
 		self.distances    = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
-		self.distances_max = tf.placeholder(tf.float32, [None])
 
 		self.conv = {}
 		self.pool = {}
@@ -55,8 +54,6 @@ class rsrcnn:
 			self.load_vgg16_weights(weights, 'rsrcnn')
 
 		self.build_optimizer()
-
-		self.compute_distaces()	
 
 		self.saver = tf.train.Saver(max_to_keep=3)
 
@@ -128,9 +125,6 @@ class rsrcnn:
 			conv5_2_W = tf.get_variable(initializer=tf.constant(conv5_2_W_np), name='conv5_2/weights')
 
 		print("params of C1-13 of vgg16 successfully loaded!")
-
-	def compute_distaces(self, name=None):
-		self.distances_max = tf.reduce_max(self.distances, axis=[1,2])
 
 
 	def conv2d(self, input, filter_shape, strides = (1,1,1,1), activation = tf.nn.relu, pad = "SAME", name = None, stddev=1e-1):
@@ -556,9 +550,6 @@ def test_deconv2d_custom():
 
 def f_function(distance):
 	
-	max_dist = np.sqrt(np.amax(distance))
-	threshold = 0.3 * max_dist
-
 	distance = np.sqrt(distance)
 	max_dist = np.amax(distance)
 	threshold = 0.3 * max_dist
@@ -596,7 +587,6 @@ if __name__ == '__main__':
 
 	print("Reading distances")
 	distances = []
-	distances_max = []
 	for file in listdir(FLAGS.DISTANCES_PATH):
 		distance_image = ndimage.imread(FLAGS.DISTANCES_PATH + file, mode = 'L')
 		distances.append(f_function(distance_image))
