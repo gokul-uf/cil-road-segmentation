@@ -595,6 +595,8 @@ if __name__ == '__main__':
 	groundtruths = []
 	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
 		groundtruth = ndimage.imread(FLAGS.GROUNDTRUTHS_PATH + file, mode = 'L')
+		groundtruth[groundtruth < 127] = 0
+		groundtruth[groundtruth >= 127] = 1
 		groundtruths.append(groundtruth)
 	print("Number of groundtruths: {0}".format(len(groundtruths)))
 
