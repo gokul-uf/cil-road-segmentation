@@ -45,6 +45,7 @@ class rsrcnn:
 		self.batch_size = FLAGS.batch_size
 		self.inp_dim = 200
 		self.output = None
+		self.output_image = None
 
 		self.learning_rate = FLAGS.learning_rate
 		self.momentum = FLAGS.momentum
@@ -459,6 +460,7 @@ class rsrcnn:
 
 			# print("crop shape")
 			# print(output.get_shape())
+			self.output_image = crop
 			self.output = output
 
 			print("building model done")
@@ -467,7 +469,7 @@ class rsrcnn:
 
 		self.loss = self.overall_loss()
 		tf.summary.histogram("output_weights", self.output)
-		tf.summary.image("output_map", self.output)
+		tf.summary.image("output_map", self.output_image)
 		#tf.summary.scalar('loss', self.loss)
 		print("loss shape")
 		print(self.loss.get_shape())
