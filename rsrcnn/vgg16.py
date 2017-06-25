@@ -165,8 +165,8 @@ class rsrcnn:
 									stddev=stddev),
 									name='weights')
 
-			return tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
-				strides=strides, padding=pad)
+			return tf.nn.relu(tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
+				strides=strides, padding=pad))
 
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
