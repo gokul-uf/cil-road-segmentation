@@ -25,7 +25,8 @@ tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "./data/CIL/generate/patches/or
 tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "./data/CIL/generate/patches/dst/", "path to distances.")
 tf.app.flags.DEFINE_string("WEIGHTS_PATH"      , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
 tf.app.flags.DEFINE_string("train_dir"         , "./rsrcnn/train_dir/", "Directory to save trained model.")
-tf.app.flags.DEFINE_string("summaries_dir"    , "/data/CIL/generate/summaries", "path to summaries.")
+tf.app.flags.DEFINE_string("output_dir"        , "./rsrcnn/outputs/", "Directory to save output images.")
+tf.app.flags.DEFINE_string("summaries_dir"     , "/data/CIL/generate/summaries", "path to summaries.")
 
 tf.set_random_seed(1)
 
@@ -336,15 +337,13 @@ class rsrcnn:
 	def overall_loss(self):
 
 		exp_dists = tf.exp(-self.distances)
-		# print("exp_dists shape")
-		# print(exp_dists.get_shape())
 
 		groundtruths_cmpl = (1-self.groundtruths)
-		# print("groundtruths_cmpl shape")
-		# print(groundtruths_cmpl.get_shape())
 
 		loss = ( exp_dists * self.output * groundtruths_cmpl ) + \
 			( tf.log(1+tf.exp(-self.output)) * (self.groundtruths + (groundtruths_cmpl*exp_dists) ) )
+
+		#loss = tf.maximum(self.output, 0) - (self.output * self.groundtruths) + tf.log(1 + tf.exp(-tf.abs(self.output)))
 
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
 
@@ -679,6 +678,47 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 		np.random.shuffle(zipped_list)
 		train_images, train_groundtruths, train_distances = zip(*zipped_list)
 
+def test(sess, model, val_images, val_groundtruths, val_distances):
+
+	tf.reset_default_graph()
+
+	try:
+		model_path = os.path.join(FLAGS.train_dir, "epoch_300/epoch_300.ckpt")
+		print("Reading model parameters from {0}".format(model_path))
+		model.saver.restore(sess, model_path)
+
+	except:
+		print("Trained model not found. Exiting!")
+		sys.exit()
+
+	outputs_list = []
+	for i in tqdm(range(len(val_images) // FLAGS.batch_size)):
+
+		fd = {	model.distances    : val_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+				model.groundtruths : val_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+				model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
+				}
+
+		output = sess.run(model.output, feed_dict=fd)
+		outputs_list.append(output)
+
+	image_num = 0
+	for i in range(len(outputs_list)):
+
+		outputs_list[i][ outputs_list[i] >= 0 ] = 255
+		outputs_list[i][ outputs_list[i] <  0 ] = 0
+
+		for j in range(FLAGS.batch_size):
+
+			output = outputs_list[i][j]
+
+			misc.imsave(os.path.join(FLAGS.output_dir + 'actual/', str(image_num) + '.jpg'), output)
+			misc.imsave(os.path.join(FLAGS.output_dir + 'expected/', str(image_num) + '.jpg'), val_groundtruths[i*FLAGS.batch_size + j])
+			image_num += 1
+
+
+
+
 if __name__ == '__main__':
 
 	# test_deconv2d_custom()
@@ -710,10 +750,10 @@ if __name__ == '__main__':
 
 	val_distances = distances[0:21]
 	train_distances = distances[21:]
-	
+
 	# running test on dev set
 	if 'test' in sys.argv:
-		pass
+		test(sess, model, val_images, val_groundtruths, val_distances)
 
 	else:
 		train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances)
