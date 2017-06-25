@@ -700,13 +700,16 @@ def test(sess, model, val_images, val_groundtruths, val_distances):
 	outputs_list = []
 	for i in tqdm(range(len(val_images) // FLAGS.batch_size)):
 
-		fd = {	model.distances    : val_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-				model.groundtruths : val_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+		fd = {	
 				model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
 				}
 
 		output = sess.run(model.output, feed_dict=fd)
 		outputs_list.append(output)
+
+	# 1 implies road, so their pixel values changed to 255 while saving back as image
+	for i in range(len(val_groundtruths)):
+		val_groundtruths[i][ val_groundtruths[i] == 1 ] = 255
 
 	image_num = 0
 	for i in range(len(outputs_list)):
