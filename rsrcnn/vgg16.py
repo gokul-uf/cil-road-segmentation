@@ -26,7 +26,7 @@ tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "./data/CIL/generate/patches/ds
 tf.app.flags.DEFINE_string("WEIGHTS_PATH"      , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
 tf.app.flags.DEFINE_string("train_dir"         , "./rsrcnn/train_dir/", "Directory to save trained model.")
 tf.app.flags.DEFINE_string("output_dir"        , "./rsrcnn/outputs/", "Directory to save output images.")
-tf.app.flags.DEFINE_string("summaries_dir"     , "/data/CIL/generate/summaries", "path to summaries.")
+tf.app.flags.DEFINE_string("summaries_dir"     , "./data/CIL/generate/summaries", "path to summaries.")
 
 tf.set_random_seed(1)
 
@@ -46,6 +46,7 @@ class rsrcnn:
 		self.batch_size = FLAGS.batch_size
 		self.inp_dim = 200
 		self.output = None
+		self.output_image = None
 
 		self.learning_rate = FLAGS.learning_rate
 		self.momentum = FLAGS.momentum
@@ -458,6 +459,7 @@ class rsrcnn:
 
 			# print("crop shape")
 			# print(output.get_shape())
+			self.output_image = crop
 			self.output = output
 
 			print("building model done")
@@ -465,7 +467,9 @@ class rsrcnn:
 	def build_optimizer(self):
 
 		self.loss = self.overall_loss()
-		#tf.summary.scalar('loss', self.loss)
+		tf.summary.histogram("output_weights", self.output)
+		tf.summary.image("output_map", self.output_image)
+		tf.summary.scalar('loss', self.loss)
 		print("loss shape")
 		print(self.loss.get_shape())
 
@@ -585,6 +589,8 @@ def read_data():
 	groundtruths = []
 	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
 		groundtruth = ndimage.imread(FLAGS.GROUNDTRUTHS_PATH + file, mode = 'L')
+		groundtruth[groundtruth < 127] = 0
+		groundtruth[groundtruth >= 127] = 1
 		groundtruths.append(groundtruth)
 	print("Number of groundtruths: {0}".format(len(groundtruths)))
 
@@ -606,10 +612,10 @@ def read_data():
 	return (images, groundtruths, distances)
 
 def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances):
-	#merged = tf.summary.merge_all()
-	# train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
- #                                      sess.graph)
-	# test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
+	merged = tf.summary.merge_all()
+	train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
+                                     sess.graph)
+	test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
@@ -634,9 +640,9 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
 				}
 
-			_, train_loss = sess.run([model.train_op, model.loss], feed_dict=fd)
+			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
 
-			#train_writer.add_summary(summary, i)
+			train_writer.add_summary(summary, i)
 
 		end = time.time()
 		print("Epoch {0} done. Time take = {1}".format( epoch, (end-start)/60 ))
@@ -652,9 +658,9 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 					model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
 					}
 
-			output, loss = sess.run([model.output, model.loss], feed_dict=fd)
+			output, loss, summary = sess.run([model.output, model.loss, merged], feed_dict=fd)
 			val_losses.append(loss)
-			#test_writer.add_summary(summary, i)
+			test_writer.add_summary(summary, i)
 
 		avg_val_loss = sum(val_losses)/len(val_losses)
 		print( "validation loss = {0}".format(avg_val_loss) )
