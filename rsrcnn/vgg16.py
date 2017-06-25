@@ -67,7 +67,7 @@ class rsrcnn:
 
 		self.build_optimizer()
 
-		self.saver = tf.train.Saver(max_to_keep=3)
+		self.saver = tf.train.Saver(max_to_keep=1000)
 
 	def load_vgg16_weights(self, weights_dir, name=None):
 
@@ -667,7 +667,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 		print( "validation loss = {0}".format(avg_val_loss) )
 		sys.stdout.flush()
 
-		if epoch%100 == 0:
+		if epoch%10 == 0:
 			model.save(sess, epoch)
 
 		# exit if validation loss starts increasing
