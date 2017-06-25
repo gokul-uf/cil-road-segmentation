@@ -606,31 +606,7 @@ def read_data():
 
 	return (images, groundtruths, distances)
 
-if __name__ == '__main__':
-
-	# test_deconv2d_custom()
-
-	sess = tf.Session()
-
-	print("Creating model")
-	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
-	#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
-
-	images, groundtruths, distances = read_data()
-
-	# number of total patches = 381
-	# validation = 21
-	# training = 360
-
-	val_images = images[0:21]
-	train_images = images[21:]
-
-	val_groundtruths = groundtruths[0:21]
-	train_groundtruths = groundtruths[21:]
-
-	val_distances = distances[0:21]
-	train_distances = distances[21:]
-
+def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances):
 	#merged = tf.summary.merge_all()
 	# train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
  #                                      sess.graph)
@@ -702,4 +678,47 @@ if __name__ == '__main__':
 		zipped_list = list(zip(train_images, train_groundtruths, train_distances))
 		np.random.shuffle(zipped_list)
 		train_images, train_groundtruths, train_distances = zip(*zipped_list)
+
+if __name__ == '__main__':
+
+	# test_deconv2d_custom()
+
+	print("params passed:")
+
+	if len(sys.argv) > 0:
+		print(sys.argv)
+	else:
+		print("None")
+
+	sess = tf.Session()
+
+	print("Creating model")
+	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
+	#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+
+	images, groundtruths, distances = read_data()
+
+	# number of total patches = 381
+	# validation = 21
+	# training = 360
+
+	val_images = images[0:21]
+	train_images = images[21:]
+
+	val_groundtruths = groundtruths[0:21]
+	train_groundtruths = groundtruths[21:]
+
+	val_distances = distances[0:21]
+	train_distances = distances[21:]
+	
+	# running test on dev set
+	if 'test' in sys.argv:
+		pass
+
+	else:
+		train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances)
+
+
+
+	
 
