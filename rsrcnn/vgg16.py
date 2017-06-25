@@ -143,12 +143,10 @@ class rsrcnn:
 	def conv2d(self, input, filter_shape, strides = (1,1,1,1), activation = tf.nn.relu, pad = "SAME", name = None, stddev=1e-1):
 		#print("In conv2d")
 		with tf.variable_scope(name, reuse=True) as scope:
-			kernel = tf.get_variable(initializer=tf.truncated_normal(filter_shape, dtype=tf.float32,
-													 stddev=stddev), name='weights')
+			kernel = tf.get_variable(initializer= tf.contrib.layers.xavier_initializer_conv2d(), name='weights')
 			conv = tf.nn.conv2d(input, kernel, strides, padding=pad)
 
-			biases = tf.get_variable( initializer=tf.constant(0.0, shape=[filter_shape[3]], dtype=tf.float32),
-								 trainable=True, name='biases')
+			biases = tf.get_variable(initializer=tf.contrib.layers.xavier_initializer(), name='biases')
 			out = tf.nn.bias_add(conv, biases)
 
 			self.conv[name] = tf.nn.relu(out, name=scope.name)
@@ -162,9 +160,7 @@ class rsrcnn:
 
 		with tf.variable_scope(name, reuse=True) as scope:
 
-			filter = tf.get_variable(initializer=tf.truncated_normal(filter_shape,
-									dtype=tf.float32,
-									stddev=stddev),
+			filter = tf.get_variable(initializer = tf.contrib.layers.xavier_initializer_conv2d(),
 									name='weights')
 			if relu:
 				return tf.nn.relu(tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
@@ -185,10 +181,7 @@ class rsrcnn:
 			fil_rows = filter_shape[0]
 			fil_cols = filter_shape[1]
 
-			filter = tf.get_variable( initializer=tf.truncated_normal(filter_shape,
-									dtype=tf.float32,
-									stddev=stddev),
-									name='weights')
+			filter = tf.get_variable( initializer=tf.contrib.layers.xavier_initializer_conv2d(), name='weights')
 
 
 			#filter = tf.constant([[1,1,1,1],[2,2,2,2],[3,3,3,3],[4,4,4,4]], dtype="float32")
