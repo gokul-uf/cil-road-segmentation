@@ -643,7 +643,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 
 			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
 
-			train_writer.add_summary(summary, i)
+			train_writer.add_summary(summary, epoch*72 + i)
 
 		end = time.time()
 		print("Epoch {0} done. Time take = {1}".format( epoch, (end-start)/60 ))
@@ -661,7 +661,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 
 			output, loss, summary = sess.run([model.output, model.loss, merged], feed_dict=fd)
 			val_losses.append(loss)
-			test_writer.add_summary(summary, i)
+			test_writer.add_summary(summary, epoch*72 + i)
 
 		avg_val_loss = sum(val_losses)/len(val_losses)
 		print( "validation loss = {0}".format(avg_val_loss) )
