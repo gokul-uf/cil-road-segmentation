@@ -156,7 +156,7 @@ class rsrcnn:
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
 	# input_shape  => [batch, row, col]
-	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None, stddev=1e-1):
+	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None, stddev=1e-1, relu = True):
 
 		with tf.variable_scope(name, reuse=True) as scope:
 
@@ -164,9 +164,12 @@ class rsrcnn:
 									dtype=tf.float32,
 									stddev=stddev),
 									name='weights')
-
-			return tf.nn.relu(tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
-				strides=strides, padding=pad))
+			if relu:
+				return tf.nn.relu(tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
+					strides=strides, padding=pad))
+			else:
+				return tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
+					strides=strides, padding=pad)
 
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
