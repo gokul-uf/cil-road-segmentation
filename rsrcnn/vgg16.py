@@ -470,7 +470,7 @@ class rsrcnn:
 		self.loss = self.overall_loss()
 		tf.summary.histogram("output_weights", self.output)
 		tf.summary.image("output_map", self.output_image)
-		#tf.summary.scalar('loss', self.loss)
+		tf.summary.scalar('loss', self.loss)
 		print("loss shape")
 		print(self.loss.get_shape())
 
