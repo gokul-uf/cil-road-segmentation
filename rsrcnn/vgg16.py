@@ -573,16 +573,7 @@ def f_function(distance):
 
 	return distance
 
-
-if __name__ == '__main__':
-
-	# test_deconv2d_custom()
-
-	sess = tf.Session()
-
-	print("Creating model")
-	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
-	#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+def read_data():
 
 	print("Reading images")
 	images = []
@@ -600,7 +591,6 @@ if __name__ == '__main__':
 
 	print("Reading distances")
 	distances = []
-	distances_max = []
 	for file in listdir(FLAGS.DISTANCES_PATH):
 		distance_image = ndimage.imread(FLAGS.DISTANCES_PATH + file, mode = 'L')
 		distances.append(f_function(distance_image))
@@ -613,6 +603,20 @@ if __name__ == '__main__':
 	np.random.shuffle(zipped_list)
 
 	images, groundtruths, distances = zip(*zipped_list)
+
+	return (images, groundtruths, distances)
+
+if __name__ == '__main__':
+
+	# test_deconv2d_custom()
+
+	sess = tf.Session()
+
+	print("Creating model")
+	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
+	#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+
+	images, groundtruths, distances = read_data()
 
 	# number of total patches = 381
 	# validation = 21
@@ -634,7 +638,7 @@ if __name__ == '__main__':
 
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
-	
+
 	print("Starting training")
 
 	val_loss_last_2_epochs = [float("inf"), float("inf")]
@@ -699,4 +703,3 @@ if __name__ == '__main__':
 		np.random.shuffle(zipped_list)
 		train_images, train_groundtruths, train_distances = zip(*zipped_list)
 
-	model.save(sess, FLAGS.num_epochs)
