@@ -346,7 +346,7 @@ class rsrcnn:
 
 		#loss = tf.maximum(self.output, 0) - (self.output * self.groundtruths) + tf.log(1 + tf.exp(-tf.abs(self.output)))
 
-		loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = groundtruths, logits = self.output)
+		loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = self.groundtruths, logits = self.output)
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
 
 	def build_model(self, name, reuse = False):
