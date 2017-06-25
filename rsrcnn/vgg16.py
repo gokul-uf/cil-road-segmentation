@@ -573,16 +573,7 @@ def f_function(distance):
 
 	return distance
 
-
-if __name__ == '__main__':
-
-	# test_deconv2d_custom()
-
-	sess = tf.Session()
-
-	print("Creating model")
-	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
-	#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+def read_data():
 
 	print("Reading images")
 	images = []
@@ -602,7 +593,6 @@ if __name__ == '__main__':
 
 	print("Reading distances")
 	distances = []
-	distances_max = []
 	for file in listdir(FLAGS.DISTANCES_PATH):
 		distance_image = ndimage.imread(FLAGS.DISTANCES_PATH + file, mode = 'L')
 		distances.append(f_function(distance_image))
@@ -616,19 +606,9 @@ if __name__ == '__main__':
 
 	images, groundtruths, distances = zip(*zipped_list)
 
-	# number of total patches = 381
-	# validation = 21
-	# training = 360
+	return (images, groundtruths, distances)
 
-	val_images = images[0:21]
-	train_images = images[21:]
-
-	val_groundtruths = groundtruths[0:21]
-	train_groundtruths = groundtruths[21:]
-
-	val_distances = distances[0:21]
-	train_distances = distances[21:]
-
+def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances):
 	#merged = tf.summary.merge_all()
 	# train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
  #                                      sess.graph)
@@ -636,7 +616,7 @@ if __name__ == '__main__':
 
 	model.sess.run(tf.global_variables_initializer())
 	print("All variables initialized.")
-	
+
 	print("Starting training")
 
 	val_loss_last_2_epochs = [float("inf"), float("inf")]
@@ -701,4 +681,46 @@ if __name__ == '__main__':
 		np.random.shuffle(zipped_list)
 		train_images, train_groundtruths, train_distances = zip(*zipped_list)
 
-	model.save(sess, FLAGS.num_epochs)
+if __name__ == '__main__':
+
+	# test_deconv2d_custom()
+
+	print("params passed:")
+
+	if len(sys.argv) > 0:
+		print(sys.argv)
+	else:
+		print("None")
+
+	sess = tf.Session()
+
+	print("Creating model")
+	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
+	#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+
+	images, groundtruths, distances = read_data()
+
+	# number of total patches = 381
+	# validation = 21
+	# training = 360
+
+	val_images = images[0:21]
+	train_images = images[21:]
+
+	val_groundtruths = groundtruths[0:21]
+	train_groundtruths = groundtruths[21:]
+
+	val_distances = distances[0:21]
+	train_distances = distances[21:]
+	
+	# running test on dev set
+	if 'test' in sys.argv:
+		pass
+
+	else:
+		train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances)
+
+
+
+	
+
