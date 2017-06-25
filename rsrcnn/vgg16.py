@@ -454,7 +454,7 @@ class rsrcnn:
 			# print(fusion2.get_shape())
 
 			deconv3 = self.deconv2d(deconv2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 208, 208, 1],
-									strides=(1,8,8,1), name="deconv_3")
+									strides=(1,8,8,1), name="deconv_3", relu = False)
 
 			# print("deconv3 shape")
 			# print(deconv3.get_shape())
