@@ -27,6 +27,8 @@ tf.app.flags.DEFINE_string("WEIGHTS_PATH"      , "./rsrcnn/vgg16_c1-c13_weights"
 tf.app.flags.DEFINE_string("train_dir"         , "./rsrcnn/train_dir/", "Directory to save trained model.")
 tf.app.flags.DEFINE_string("summaries_dir"    , "/data/CIL/generate/summaries", "path to summaries.")
 
+tf.set_random_seed(1)
+
 FLAGS = tf.app.flags.FLAGS
 
 
