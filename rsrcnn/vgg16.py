@@ -337,15 +337,16 @@ class rsrcnn:
 	# the loss is unnormalized
 	def overall_loss(self):
 
-		exp_dists = tf.exp(-self.distances)
+		# exp_dists = tf.exp(-self.distances)
 
-		groundtruths_cmpl = (1-self.groundtruths)
+		# groundtruths_cmpl = (1-self.groundtruths)
 
-		loss = ( exp_dists * self.output * groundtruths_cmpl ) + \
-			( tf.log(1+tf.exp(-self.output)) * (self.groundtruths + (groundtruths_cmpl*exp_dists) ) )
+		# loss = ( exp_dists * self.output * groundtruths_cmpl ) + \
+		# 	( tf.log(1+tf.exp(-self.output)) * (self.groundtruths + (groundtruths_cmpl*exp_dists) ) )
 
 		#loss = tf.maximum(self.output, 0) - (self.output * self.groundtruths) + tf.log(1 + tf.exp(-tf.abs(self.output)))
 
+		loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = groundtruths, logits = self.output)
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
 
 	def build_model(self, name, reuse = False):
