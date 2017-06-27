@@ -11,7 +11,7 @@ from scipy import ndimage
 import random
 from tqdm import tqdm
 import time
-
+import re
 
 tf.app.flags.DEFINE_float("learning_rate"               , 1e-12 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
@@ -20,13 +20,15 @@ tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradient
 tf.app.flags.DEFINE_integer("batch_size"                , 5    , "batch size.")
 tf.app.flags.DEFINE_integer("num_epochs"                , 5000  , "number of epochs.")
 
-tf.app.flags.DEFINE_string("IMAGES_PATH"       , "./data/CIL/generate/patches/sat/", "path to images.")
-tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH" , "./data/CIL/generate/patches/org/", "path to labels.")
-tf.app.flags.DEFINE_string("DISTANCES_PATH"    , "./data/CIL/generate/patches/dst/", "path to distances.")
-tf.app.flags.DEFINE_string("WEIGHTS_PATH"      , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
-tf.app.flags.DEFINE_string("train_dir"         , "./rsrcnn/train_dir/", "Directory to save trained model.")
-tf.app.flags.DEFINE_string("output_dir"        , "./rsrcnn/outputs/", "Directory to save output images.")
-tf.app.flags.DEFINE_string("summaries_dir"     , "./data/CIL/generate/summaries", "path to summaries.")
+tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/generate/patches/sat/", "path to images.")
+tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_set_patches/", "path to patches from test images.")
+tf.app.flags.DEFINE_string("TEST_OUTPUT_IMAGES_PATH"  , "./rsrcnn/kaggle/test_set_output/", "path to images generated from test images.")
+tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/generate/patches/org/", "path to labels.")
+tf.app.flags.DEFINE_string("DISTANCES_PATH"           , "./data/CIL/generate/patches/dst/", "path to distances.")
+tf.app.flags.DEFINE_string("WEIGHTS_PATH"             , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
+tf.app.flags.DEFINE_string("train_dir"                , "./rsrcnn/train_dir/", "Directory to save trained model.")
+tf.app.flags.DEFINE_string("output_dir"               , "./rsrcnn/outputs/", "Directory to save output images.")
+tf.app.flags.DEFINE_string("summaries_dir"            , "./data/CIL/generate/summaries", "path to summaries.")
 
 tf.set_random_seed(1)
 
@@ -612,6 +614,26 @@ def read_data():
 
 	return (images, groundtruths, distances)
 
+def read_test_data():
+
+	print("Reading test images")
+	
+	# sort files by file names
+	sorted_file_names = []
+	for file in listdir(FLAGS.TEST_IMAGES_PATH):
+		sorted_file_names.append(file)
+
+	sort_nicely(sorted_file_names)
+
+	images = []
+	for file in sorted_file_names:	
+		
+		image = ndimage.imread(FLAGS.TEST_IMAGES_PATH + file)
+		images.append(image)
+	print("Number of images: {0}".format(len(images)))
+
+	return images
+
 def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances):
 	merged = tf.summary.merge_all()
 	train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
@@ -690,7 +712,7 @@ def test(sess, model, val_images, val_groundtruths, val_distances):
 	tf.reset_default_graph()
 
 	try:
-		model_path = os.path.join(FLAGS.train_dir, "epoch_300/epoch_300.ckpt")
+		model_path = os.path.join(FLAGS.train_dir, "epoch_180/epoch_180.ckpt")
 		print("Reading model parameters from {0}".format(model_path))
 		model.saver.restore(sess, model_path)
 
@@ -726,7 +748,83 @@ def test(sess, model, val_images, val_groundtruths, val_distances):
 			misc.imsave(os.path.join(FLAGS.output_dir + 'expected/', str(image_num) + '.jpg'), val_groundtruths[i*FLAGS.batch_size + j])
 			image_num += 1
 
+def test_submission(sess, model, test_images):
 
+	tf.reset_default_graph()
+
+	try:
+		model_path = os.path.join(FLAGS.train_dir, "epoch_180/epoch_180.ckpt")
+		print("Reading model parameters from {0}".format(model_path))
+		model.saver.restore(sess, model_path)
+
+	except:
+		print("Trained model not found. Exiting!")
+		sys.exit()
+
+	outputs_list = []
+	for i in tqdm(range(len(test_images) // FLAGS.batch_size)):
+
+		fd = {	
+				model.imgs : test_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
+			}
+
+		output = sess.run(model.output, feed_dict=fd)
+
+		# unpack patches in the current batch
+		for img in range(FLAGS.batch_size):
+			outputs_list.append(output[img])
+
+
+	# convert to binary array
+	image_num = 0
+	for i in range(len(outputs_list)):
+
+		outputs_list[i][ outputs_list[i] >= 0 ] = 1
+		outputs_list[i][ outputs_list[i] <  0 ] = 0
+
+
+	# create full 608x608 binary output images
+	full_images = []
+	image_num = 1
+	for i in range(0,len(outputs_list),16):
+		
+		full_image = None
+
+		for j in range(i,i+16,4):
+
+			left  = np.hstack((outputs_list[j], outputs_list[j+1]))
+			right = np.hstack((outputs_list[j+2], outputs_list[j+3][:, 192:])) # only last eight columns
+			row   = np.hstack((left, right))
+
+			if full_image is None:
+				full_image = row
+
+			else:
+				if (j+4)%16==0:
+					full_image = np.vstack(( full_image, row[192:, :] ))
+				else:
+					full_image = np.vstack((full_image, row))
+
+		#full_images.append(full_image)
+		misc.imsave(os.path.join(FLAGS.TEST_OUTPUT_IMAGES_PATH, str(image_num) + '.jpg'), full_image)
+		image_num += 1
+
+def tryint(s):
+    try:
+        return int(s)
+    except:
+        return s
+
+def alphanum_key(s):
+    """ Turn a string into a list of string and number chunks.
+        "z23a" -> ["z", 23, "a"]
+    """
+    return [ tryint(c) for c in re.split('([0-9]+)', s) ]
+
+def sort_nicely(l):
+    """ Sort the given list in the way that humans expect.
+    """
+    l.sort(key=alphanum_key)
 
 
 if __name__ == '__main__':
@@ -740,32 +838,74 @@ if __name__ == '__main__':
 	else:
 		print("None")
 
-	sess = tf.Session()
-
-	print("Creating model")
-	model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
-	#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
-
-	images, groundtruths, distances = read_data()
-
-	# number of total patches = 381
-	# validation = 21
-	# training = 360
-
-	val_images = images[0:21]
-	train_images = images[21:]
-
-	val_groundtruths = groundtruths[0:21]
-	train_groundtruths = groundtruths[21:]
-
-	val_distances = distances[0:21]
-	train_distances = distances[21:]
+	
 
 	# running test on dev set
 	if 'test' in sys.argv:
+		sess = tf.Session()
+
+		print("Creating model")
+		model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
+		#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+
+		images, groundtruths, distances = read_data()
+
+		# number of total patches = 381
+		# validation = 21
+		# training = 360
+
+		val_images = images[0:21]
+		train_images = images[21:]
+
+		val_groundtruths = groundtruths[0:21]
+		train_groundtruths = groundtruths[21:]
+
+		val_distances = distances[0:21]
+		train_distances = distances[21:]
+
 		test(sess, model, val_images, val_groundtruths, val_distances)
 
+
+	elif 'submit' in sys.argv:
+		sess = tf.Session()
+
+		print("Creating model")
+		model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
+		#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+
+		images = read_test_data()
+
+		# number of total test patches = 800
+		# image 1, patch 0,0     => 0
+		# image 1, patch 0,200   => 1
+		# image 1, patch 0,400   => 2
+		# image 1, patch 0,408   => 3.......
+		# image 1, patch 408,408 => 15
+		
+		test_submission(sess, model, images)
+
 	else:
+		sess = tf.Session()
+
+		print("Creating model")
+		model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
+		#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
+
+		images, groundtruths, distances = read_data()
+
+		# number of total patches = 381
+		# validation = 21
+		# training = 360
+
+		val_images = images[0:21]
+		train_images = images[21:]
+
+		val_groundtruths = groundtruths[0:21]
+		train_groundtruths = groundtruths[21:]
+
+		val_distances = distances[0:21]
+		train_distances = distances[21:]
+
 		train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances)
 
 
