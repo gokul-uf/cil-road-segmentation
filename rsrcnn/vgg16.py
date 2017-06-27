@@ -602,7 +602,7 @@ def read_data():
 	print("Reading distances")
 	distances = []
 	# for now, no distances used. using ground truths as dummy distances to run the code
-	for file in listdir(FLAGS.DISTANCES_PATH):
+	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
 		distance_image = ndimage.imread(FLAGS.GROUNDTRUTHS_PATH + file, mode = 'L')
 		#distances.append(f_function(distance_image))
 		distances.append(distance_image)
