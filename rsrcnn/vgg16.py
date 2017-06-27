@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-8 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-12 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -480,7 +480,7 @@ class rsrcnn:
 
 		#self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
 		#self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
-		self.optimizer = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
+		self.optimizer = tf.train.RMSPropOptimizer(learning_rate=FLAGS.learning_rate)
 		
 
 		# self.gradients = self.optimizer.compute_gradients(self.loss)
