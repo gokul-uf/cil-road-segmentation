@@ -667,7 +667,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 
 			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
 
-			train_writer.add_summary(summary, epoch*72 + i)
+			train_writer.add_summary(summary, epoch*648 + i)
 
 		end = time.time()
 		print("Epoch {0} done. Time take = {1}".format( epoch, (end-start)/60 ))
@@ -899,14 +899,14 @@ if __name__ == '__main__':
 		# validation = 21
 		# training = 360
 
-		val_images = images[0:21]
-		train_images = images[21:]
+		val_images = images[0:len(images)//10]
+		train_images = images[len(images)//10:]
 
-		val_groundtruths = groundtruths[0:21]
-		train_groundtruths = groundtruths[21:]
+		val_groundtruths = groundtruths[0:len(images)//10]
+		train_groundtruths = groundtruths[len(images)//10:]
 
-		val_distances = distances[0:21]
-		train_distances = distances[21:]
+		val_distances = distances[0:len(images)//10]
+		train_distances = distances[len(images)//10:]
 
 		train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances)
 
