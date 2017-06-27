@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-6 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-7 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
