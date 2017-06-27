@@ -17,13 +17,15 @@ tf.app.flags.DEFINE_float("learning_rate"               , 1e-12 , "Learning rate
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
-tf.app.flags.DEFINE_integer("batch_size"                , 5    , "batch size.")
+tf.app.flags.DEFINE_integer("batch_size"                , 10    , "batch size.")
 tf.app.flags.DEFINE_integer("num_epochs"                , 5000  , "number of epochs.")
 
-tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/generate/patches/sat/", "path to images.")
+#tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/generate/patches/sat/", "path to images.")
+tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/overlap/sat/", "path to images.")
 tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_set_patches/", "path to patches from test images.")
 tf.app.flags.DEFINE_string("TEST_OUTPUT_IMAGES_PATH"  , "./rsrcnn/kaggle/test_set_output/", "path to images generated from test images.")
-tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/generate/patches/org/", "path to labels.")
+#tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/generate/patches/org/", "path to labels.")
+tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/overlap/org/", "path to labels.")
 tf.app.flags.DEFINE_string("DISTANCES_PATH"           , "./data/CIL/generate/patches/dst/", "path to distances.")
 tf.app.flags.DEFINE_string("WEIGHTS_PATH"             , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
 tf.app.flags.DEFINE_string("train_dir"                , "./rsrcnn/train_dir/", "Directory to save trained model.")
