@@ -698,7 +698,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 		if epoch%3 == 0:
 			model.save(sess, epoch)
 
-		tf epoch%10 == 0:
+		if epoch%10 == 0:
 			FLAGS.learning_rate /= 2.0
 
 		# exit if validation loss starts increasing
