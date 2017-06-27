@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-7 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-8 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -52,7 +52,7 @@ class rsrcnn:
 		self.output = None
 		self.output_image = None
 
-		self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
+		self.learning_rate = tf.placeholder(tf.float32)
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
 
@@ -479,7 +479,8 @@ class rsrcnn:
 		print(self.loss.get_shape())
 
 		#self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
-		self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
+		#self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
+		self.optimizer = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate)
 		
 
 		# self.gradients = self.optimizer.compute_gradients(self.loss)
@@ -763,7 +764,7 @@ def test_submission(sess, model, test_images):
 	tf.reset_default_graph()
 
 	try:
-		model_path = os.path.join(FLAGS.train_dir, "epoch_20.ckpt")
+		model_path = os.path.join(FLAGS.train_dir, "epoch_12/epoch_12.ckpt")
 		print("Reading model parameters from {0}".format(model_path))
 		model.saver.restore(sess, model_path)
 
