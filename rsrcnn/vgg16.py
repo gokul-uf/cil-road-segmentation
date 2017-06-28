@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-7 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-8 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -783,7 +783,7 @@ def test_submission(sess, model, test_images):
 	tf.reset_default_graph()
 
 	try:
-		model_path = os.path.join(FLAGS.train_dir, "epoch_12/epoch_12.ckpt")
+		model_path = os.path.join(FLAGS.train_dir, "epoch_6.ckpt")
 		print("Reading model parameters from {0}".format(model_path))
 		model.saver.restore(sess, model_path)
 
