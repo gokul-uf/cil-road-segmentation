@@ -52,13 +52,13 @@ class rsrcnn:
 		self.output = None
 		self.output_image = None
 
-		#self.learning_rate = FLAGS.learning_rate #tf.placeholder(tf.float32, shape=[])
+		self.learning_rate = tf.placeholder(tf.float64, shape=[])
 
 		# Setup Learning Rate Decay
-		self.global_step = tf.Variable(0, trainable=False)
-		starter_learning_rate = FLAGS.learning_rate
-		self.learning_rate = tf.train.exponential_decay(starter_learning_rate, self.global_step,
-		648*5, 0.96, staircase=True)
+		# self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
+		# self.starter_learning_rate = tf.constant(dtype=tf.float64, shape=[])
+		# self.learning_rate = tf.train.exponential_decay(starter_learning_rate, self.global_step,
+		# 648*5, 0.5, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -496,8 +496,8 @@ class rsrcnn:
 		print(self.loss.get_shape())
 
 		#self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
-		#self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
-		self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
+		self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
+		#self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
 		#self.optimizer = tf.train.RMSPropOptimizer(learning_rate=FLAGS.learning_rate)
 		
 
@@ -688,7 +688,8 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 
 			fd = {	model.distances    : train_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.groundtruths : train_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
+					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+					model.learning_rate: FLAGS.learning_rate
 				}
 
 			_, train_loss, summary, lr = sess.run([model.train_op, model.loss, merged, model.learning_rate], feed_dict=fd)
@@ -721,7 +722,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 		if epoch%3 == 0:
 			model.save(sess, epoch)
 
-		if epoch!=0 and epoch%6 == 0:
+		if epoch!=0 and epoch%5 == 0:
 			FLAGS.learning_rate /= 2.0
 
 		# exit if validation loss starts increasing
