@@ -52,7 +52,14 @@ class rsrcnn:
 		self.output = None
 		self.output_image = None
 
-		self.learning_rate = tf.placeholder(tf.float32, shape=[])
+		#self.learning_rate = FLAGS.learning_rate #tf.placeholder(tf.float32, shape=[])
+
+		# Setup Learning Rate Decay
+		 self.global_step = tf.Variable(0, trainable=False)
+		 starter_learning_rate = FLAGS.learning_rate
+		 self.learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+		 648*5, 0.96, staircase=True)
+
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
 
@@ -351,6 +358,16 @@ class rsrcnn:
 		#loss = tf.maximum(self.output, 0) - (self.output * self.groundtruths) + tf.log(1 + tf.exp(-tf.abs(self.output)))
 
 		loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = self.groundtruths, logits = self.output)
+
+		# exp_dists = tf.exp(self.distances)
+		# loss = weighted_cross_entropy_with_logits(
+		# 										    targets = self.groundtruths,
+		# 										    logits  = self.output,
+		# 										    pos_weight = exp_dists,
+		# 										    name=None
+		# 										)
+
+
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
 
 	def build_model(self, name, reuse = False):
@@ -490,7 +507,7 @@ class rsrcnn:
 
 		# self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
 
-		self.train_op = self.optimizer.minimize(self.loss)
+		self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
 
 	def initialize_variable(self, scope_name, var_name, shape):
 		with tf.variable_scope(scope_name) as scope:
@@ -664,21 +681,22 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 		start = time.time()
 
 		train_loss = 0
+		lr = 0
 		# iterate on batches
 		for i in tqdm(range(len(train_images) // FLAGS.batch_size)):
 
 			fd = {	model.distances    : train_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.groundtruths : train_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
-					model.learning_rate: FLAGS.learning_rate
 				}
 
-			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
+			_, train_loss, summary, lr = sess.run([model.train_op, model.loss, merged, model.learning_rate], feed_dict=fd)
 
 			train_writer.add_summary(summary, epoch*648 + i)
 
 		end = time.time()
 		print("Epoch {0} done. Time take = {1}".format( epoch, (end-start)/60 ))
+		print("Learning rate = {0}".format(lr))
 		print("training loss = {0}".format(train_loss))
 		sys.stdout.flush()
 
