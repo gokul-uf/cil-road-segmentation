@@ -52,13 +52,13 @@ class rsrcnn:
 		self.output = None
 		self.output_image = None
 
-		self.learning_rate = tf.placeholder(tf.float64, shape=[])
+		#self.learning_rate = tf.placeholder(tf.float64, shape=[])
 
-		# Setup Learning Rate Decay
-		# self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
-		# self.starter_learning_rate = tf.constant(dtype=tf.float64, shape=[])
-		# self.learning_rate = tf.train.exponential_decay(starter_learning_rate, self.global_step,
-		# 648*5, 0.5, staircase=True)
+		#Setup Learning Rate Decay
+		self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
+		self.starter_learning_rate = tf.constant(FLAGS.learning_rate, dtype=tf.float64)
+		self.learning_rate = tf.train.exponential_decay(starter_learning_rate, self.global_step,
+		648, 0.95, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -508,7 +508,7 @@ class rsrcnn:
 
 		# self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
 
-		self.train_op = self.optimizer.minimize(self.loss)
+		self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
 
 	def initialize_variable(self, scope_name, var_name, shape):
 		with tf.variable_scope(scope_name) as scope:
@@ -688,8 +688,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 
 			fd = {	model.distances    : train_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.groundtruths : train_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-					model.learning_rate: FLAGS.learning_rate
+					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
 				}
 
 			_, train_loss, summary, lr = sess.run([model.train_op, model.loss, merged, model.learning_rate], feed_dict=fd)
@@ -722,8 +721,8 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 		if epoch%3 == 0:
 			model.save(sess, epoch)
 
-		if epoch!=0 and epoch%5 == 0:
-			FLAGS.learning_rate /= 2.0
+		# if epoch!=0 and epoch%5 == 0:
+		# 	FLAGS.learning_rate /= 2.0
 
 		# exit if validation loss starts increasing
 		# if avg_val_loss > val_loss_last_2_epochs[1]  and avg_val_loss > val_loss_last_2_epochs[0]:
