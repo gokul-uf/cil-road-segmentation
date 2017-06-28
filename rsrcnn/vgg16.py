@@ -26,7 +26,8 @@ tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_se
 tf.app.flags.DEFINE_string("TEST_OUTPUT_IMAGES_PATH"  , "./rsrcnn/kaggle/test_set_output/", "path to images generated from test images.")
 #tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/generate/patches/org/", "path to labels.")
 tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/overlap/org/", "path to labels.")
-tf.app.flags.DEFINE_string("DISTANCES_PATH"           , "./data/CIL/generate/patches/dst/", "path to distances.")
+#tf.app.flags.DEFINE_string("DISTANCES_PATH"           , "./data/CIL/generate/patches/dst/", "path to distances.")
+tf.app.flags.DEFINE_string("DISTANCES_PATH"           , "./data/CIL/overlap/dst/", "path to distances.")
 tf.app.flags.DEFINE_string("WEIGHTS_PATH"             , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
 tf.app.flags.DEFINE_string("train_dir"                , "./rsrcnn/train_dir/", "Directory to save trained model.")
 tf.app.flags.DEFINE_string("output_dir"               , "./rsrcnn/outputs/", "Directory to save output images.")
@@ -146,10 +147,6 @@ class rsrcnn:
 			conv5_2_W = tf.get_variable(initializer=tf.constant(conv5_2_W_np), name='conv5_2/weights')
 
 		print("params of C1-13 of vgg16 successfully loaded!")
-
-	def compute_distaces(self, name=None):
-		self.distances_max = tf.reduce_max(self.distances, axis=[1,2])
-
 
 	def conv2d(self, input, filter_shape, strides = (1,1,1,1), activation = tf.nn.relu, pad = "SAME", name = None, stddev=1e-1):
 		#print("In conv2d")
@@ -355,15 +352,15 @@ class rsrcnn:
 
 		#loss = tf.maximum(self.output, 0) - (self.output * self.groundtruths) + tf.log(1 + tf.exp(-tf.abs(self.output)))
 
-		loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = self.groundtruths, logits = self.output)
+		#loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = self.groundtruths, logits = self.output)
 
-		# exp_dists = tf.exp(self.distances)
-		# loss = weighted_cross_entropy_with_logits(
-		# 										    targets = self.groundtruths,
-		# 										    logits  = self.output,
-		# 										    pos_weight = exp_dists,
-		# 										    name=None
-		# 										)
+		exp_dists = tf.exp(self.distances)
+		loss = weighted_cross_entropy_with_logits(
+												    targets = self.groundtruths,
+												    logits  = self.output,
+												    pos_weight = exp_dists,
+												    name=None
+												)
 
 
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
@@ -600,6 +597,15 @@ def f_function(distance):
 
 def read_data():
 
+	print("Reading distances")
+	no_road_images = []
+	distances = []
+	# for now, no distances used. using ground truths as dummy distances to run the code
+	for file in listdir(FLAGS.DISTANCES_PATH):
+		distance_image = ndimage.imread(FLAGS.DISTANCES_PATH + file, mode = 'L')
+		distances.append(f_function(distance_image))
+	print("Number of distances: {0}".format(len(distances)))
+
 	print("Reading images")
 	images = []
 	for file in listdir(FLAGS.IMAGES_PATH):
@@ -616,14 +622,7 @@ def read_data():
 		groundtruths.append(groundtruth)
 	print("Number of groundtruths: {0}".format(len(groundtruths)))
 
-	print("Reading distances")
-	distances = []
-	# for now, no distances used. using ground truths as dummy distances to run the code
-	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
-		distance_image = ndimage.imread(FLAGS.GROUNDTRUTHS_PATH + file, mode = 'L')
-		#distances.append(f_function(distance_image))
-		distances.append(distance_image)
-	print("Number of distances: {0}".format(len(distances)))
+	
 
 
 	print("Randomizing inputs")
@@ -656,6 +655,7 @@ def read_test_data():
 	return images
 
 def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances):
+	
 	merged = tf.summary.merge_all()
 	train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
 									 sess.graph)
