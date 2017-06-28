@@ -55,10 +55,10 @@ class rsrcnn:
 		#self.learning_rate = FLAGS.learning_rate #tf.placeholder(tf.float32, shape=[])
 
 		# Setup Learning Rate Decay
-		 self.global_step = tf.Variable(0, trainable=False)
-		 starter_learning_rate = FLAGS.learning_rate
-		 self.learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-		 648*5, 0.96, staircase=True)
+		self.global_step = tf.Variable(0, trainable=False)
+		starter_learning_rate = FLAGS.learning_rate
+		self.learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+		648*5, 0.96, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -659,7 +659,7 @@ def read_test_data():
 def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances):
 	merged = tf.summary.merge_all()
 	train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
-                                     sess.graph)
+									 sess.graph)
 	test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
 	model.sess.run(tf.global_variables_initializer())
@@ -841,21 +841,21 @@ def test_submission(sess, model, test_images):
 		image_num += 1
 
 def tryint(s):
-    try:
-        return int(s)
-    except:
-        return s
+	try:
+		return int(s)
+	except:
+		return s
 
 def alphanum_key(s):
-    """ Turn a string into a list of string and number chunks.
-        "z23a" -> ["z", 23, "a"]
-    """
-    return [ tryint(c) for c in re.split('([0-9]+)', s) ]
+	""" Turn a string into a list of string and number chunks.
+		"z23a" -> ["z", 23, "a"]
+	"""
+	return [ tryint(c) for c in re.split('([0-9]+)', s) ]
 
 def sort_nicely(l):
-    """ Sort the given list in the way that humans expect.
-    """
-    l.sort(key=alphanum_key)
+	""" Sort the given list in the way that humans expect.
+	"""
+	l.sort(key=alphanum_key)
 
 
 if __name__ == '__main__':
