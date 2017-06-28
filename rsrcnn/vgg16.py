@@ -32,7 +32,7 @@ tf.app.flags.DEFINE_string("train_dir"                , "./rsrcnn/train_dir/", "
 tf.app.flags.DEFINE_string("output_dir"               , "./rsrcnn/outputs/", "Directory to save output images.")
 tf.app.flags.DEFINE_string("summaries_dir"            , "./data/CIL/generate/summaries", "path to summaries.")
 
-#tf.set_random_seed(1)
+tf.set_random_seed(1)
 
 FLAGS = tf.app.flags.FLAGS
 
