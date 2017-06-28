@@ -52,7 +52,7 @@ class rsrcnn:
 		self.output = None
 		self.output_image = None
 
-		self.learning_rate = FLAGS.learning_rate #tf.placeholder(tf.float32)
+		self.learning_rate = tf.placeholder(tf.float32, shape=[])
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
 
@@ -670,7 +670,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 			fd = {	model.distances    : train_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.groundtruths : train_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
-					#model.learning_rate: FLAGS.learning_rate
+					model.learning_rate: FLAGS.learning_rate
 				}
 
 			_, train_loss, summary = sess.run([model.train_op, model.loss, merged], feed_dict=fd)
