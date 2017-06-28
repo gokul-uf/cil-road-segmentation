@@ -52,13 +52,11 @@ class rsrcnn:
 		self.output = None
 		self.output_image = None
 
-		#self.learning_rate = tf.placeholder(tf.float64, shape=[])
-
 		#Setup Learning Rate Decay
 		self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
 		self.starter_learning_rate = tf.constant(FLAGS.learning_rate, dtype=tf.float64)
-		self.learning_rate = tf.train.exponential_decay(starter_learning_rate, self.global_step,
-		648, 0.95, staircase=True)
+		self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
+		648*4, 0.50, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
