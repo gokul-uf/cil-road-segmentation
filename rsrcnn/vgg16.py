@@ -355,7 +355,7 @@ class rsrcnn:
 		#loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = self.groundtruths, logits = self.output)
 
 		exp_dists = tf.exp(self.distances)
-		loss = weighted_cross_entropy_with_logits(
+		loss = tf.nn.weighted_cross_entropy_with_logits(
 												    targets = self.groundtruths,
 												    logits  = self.output,
 												    pos_weight = exp_dists,
@@ -655,7 +655,7 @@ def read_test_data():
 	return images
 
 def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances):
-	
+
 	merged = tf.summary.merge_all()
 	train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
 									 sess.graph)
