@@ -508,7 +508,7 @@ class rsrcnn:
 
 		# self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
 
-		self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
+		self.train_op = self.optimizer.minimize(self.loss)
 
 	def initialize_variable(self, scope_name, var_name, shape):
 		with tf.variable_scope(scope_name) as scope:
