@@ -496,7 +496,8 @@ class rsrcnn:
 		print(self.loss.get_shape())
 
 		#self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
-		self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
+		#self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
+		self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
 		#self.optimizer = tf.train.RMSPropOptimizer(learning_rate=FLAGS.learning_rate)
 		
 
