@@ -454,7 +454,7 @@ class rsrcnn:
 
 			fusion2 = self.fusion(bn_dc_2, bn18, name="fusion_2")
 
-			deconv3 = self.deconv2d  (input = fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 208, 208, 1], strides=(1,8,8,1), name="deconv_3", relu = False)
+			deconv3 = self.deconv2d  (input = fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 220, 220, 1], strides=(1,9,9,1), name="deconv_3", relu = False)
 			bn_dc_3 = self.batch_norm(input = deconv3, name = "bn_dc_3")
 
 
