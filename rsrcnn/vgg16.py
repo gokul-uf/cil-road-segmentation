@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-6 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-7 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -54,12 +54,13 @@ class rsrcnn:
 		self.output_image = None
 
 		self.is_training = tf.placeholder(tf.bool, name='is_training')
+		self.keep_prob   = tf.placeholder(tf.float32, name='keep_prob')
 
 		#Setup Learning Rate Decay
 		self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
 		self.starter_learning_rate = tf.constant(FLAGS.learning_rate, dtype=tf.float64)
 		self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-		648*20, 0.50, staircase=True)
+		648*10, 0.50, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -156,8 +157,10 @@ class rsrcnn:
 			kernel = tf.get_variable(initializer= tf.contrib.layers.xavier_initializer_conv2d(), name='weights')
 			conv = tf.nn.conv2d(input, kernel, strides, padding=pad)
 
+			drop_out = tf.nn.dropout(conv, keep_prob=self.keep_prob)
+
 			biases = tf.get_variable(initializer=tf.contrib.layers.xavier_initializer(), name='biases')
-			self.conv[name] = tf.nn.bias_add(conv, biases)
+			self.conv[name] = tf.nn.bias_add(drop_out, biases)
 
 			self.parameters += [kernel, biases]
 			return self.conv[name]
@@ -174,7 +177,9 @@ class rsrcnn:
 			out = tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
 					strides=strides, padding=pad)
 
-			return out
+			drop_out = tf.nn.dropout(out, keep_prob=self.keep_prob)
+
+			return drop_out
 
 	def batch_norm(self, input, relu = True, name=None):
 
@@ -656,7 +661,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 		tf.reset_default_graph()
 
 		try:
-			model_path = os.path.join(FLAGS.train_dir, "epoch_9.ckpt")
+			model_path = os.path.join(FLAGS.train_dir, "epoch_12.ckpt")
 			print("Reading model parameters from {0}".format(model_path))
 			model.saver.restore(sess, model_path)
 
@@ -690,7 +695,8 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 			fd = {	model.distances    : train_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.groundtruths : train_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-					model.is_training  : 1
+					model.is_training  : 1,
+					model.keep_prob    : 0.5
 				}
 
 			_, train_loss, summary, lr = sess.run([model.train_op, model.loss, merged, model.learning_rate], feed_dict=fd)
@@ -710,7 +716,8 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 			fd = {	model.distances    : val_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.groundtruths : val_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-					model.is_training  : 0
+					model.is_training  : 0,
+					model.keep_prob    : 1.0
 					}
 
 			output, loss, summary = sess.run([model.output, model.loss, merged], feed_dict=fd)
@@ -760,7 +767,8 @@ def test(sess, model, val_images, val_groundtruths, val_distances):
 
 		fd = {	
 				model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-				model.is_training  : 0
+				model.is_training  : 0,
+				model.keep_prob    : 1.0
 				}
 
 		output = sess.run(model.output, feed_dict=fd)
@@ -802,7 +810,8 @@ def test_submission(sess, model, test_images):
 
 		fd = {	
 				model.imgs 		  : test_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-				model.is_training : 0
+				model.is_training : 0,
+				model.keep_prob   : 1.0
 			}
 
 		output = sess.run(model.output, feed_dict=fd)
