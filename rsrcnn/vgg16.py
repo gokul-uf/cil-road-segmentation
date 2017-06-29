@@ -640,14 +640,31 @@ def read_test_data():
 
 	return images
 
-def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances):
+def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances, load=None):
 
 	merged = tf.summary.merge_all()
 	train_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/train',
 									 sess.graph)
 	test_writer = tf.summary.FileWriter(FLAGS.summaries_dir + '/test')
 
-	model.sess.run(tf.global_variables_initializer())
+	if load is None:
+		model.sess.run(tf.global_variables_initializer())
+
+	else:
+
+		# load trained model to further train
+		tf.reset_default_graph()
+
+		try:
+			model_path = os.path.join(FLAGS.train_dir, "epoch_9.ckpt")
+			print("Reading model parameters from {0}".format(model_path))
+			model.saver.restore(sess, model_path)
+
+		except:
+			print("Trained model not found. Exiting!")
+			sys.exit()
+
+
 	print("All variables initialized.")
 
 	print("Learning rate={0}".format(FLAGS.learning_rate))
@@ -906,25 +923,15 @@ if __name__ == '__main__':
 
 	else:
 
+		load = None
+		if 'load' in sys.argv:
+			load = 'load'
+
 		sess = tf.Session()
 
 		print("Creating model")
 		model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
 		#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
-
-		# load trained model to further train
-		if 'load' in sys.argv:
-			tf.reset_default_graph()
-
-			try:
-				model_path = os.path.join(FLAGS.train_dir, "epoch_9.ckpt")
-				print("Reading model parameters from {0}".format(model_path))
-				model.saver.restore(sess, model_path)
-
-			except:
-				print("Trained model not found. Exiting!")
-				sys.exit()
-
 
 		images, groundtruths, distances = read_data()
 
@@ -941,7 +948,7 @@ if __name__ == '__main__':
 		val_distances = distances[0:len(images)//10]
 		train_distances = distances[len(images)//10:]
 
-		train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances)
+		train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances, load)
 
 
 
