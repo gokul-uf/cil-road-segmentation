@@ -159,12 +159,8 @@ class rsrcnn:
 			biases = tf.get_variable(initializer=tf.contrib.layers.xavier_initializer(), name='biases')
 			out = tf.nn.bias_add(conv, biases)
 
-			relu_out = tf.nn.relu(out, name=scope.name)
+			self.conv[name] = tf.nn.relu(out, name=scope.name)
 
-			self.conv[name] = tf.contrib.layers.batch_norm(relu_out, 
-										  center=True, scale=True, 
-										  is_training=self.is_training)
-								
 			self.parameters += [kernel, biases]
 			return self.conv[name]
 
@@ -184,11 +180,14 @@ class rsrcnn:
 				out = tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
 					strides=strides, padding=pad)
 
-			return tf.contrib.layers.batch_norm(out, 
+			return out
+
+	def batch_norm(self, input, name=None):
+
+		with tf.variable_scope(name) as scope:
+			return tf.contrib.layers.batch_norm(input, 
 										  center=True, scale=True, 
 										  is_training=self.is_training)
-
-
 
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
@@ -388,11 +387,11 @@ class rsrcnn:
 			images = self.preprocess(name='preprocess')
 
 			conv1_1 = self.conv2d(input = images,  filter_shape = [3, 3, 3,   64],  name = "conv1_1")
-
+			bn1_1   = self.batch_norm(input = conv1_1, name="bn1_1")
 			# print("conv1_1 shape")
 			# print(conv1_1.get_shape())
 
-			conv1_2 = self.conv2d(input = conv1_1, filter_shape = [3, 3, 64,  64],  name = "conv1_2")
+			conv1_2 = self.conv2d(input = bn1_1, filter_shape = [3, 3, 64,  64],  name = "conv1_2")
 			pool1 = self.max_pool(input = conv1_2, name = "pool1")
 
 			# print("pool1 shape")
