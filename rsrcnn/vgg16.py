@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-8 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-6 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -53,11 +53,13 @@ class rsrcnn:
 		self.output = None
 		self.output_image = None
 
+		self.is_training = tf.placeholder(tf.bool, name='is_training')
+
 		#Setup Learning Rate Decay
 		self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
 		self.starter_learning_rate = tf.constant(FLAGS.learning_rate, dtype=tf.float64)
 		self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-		648*4, 0.50, staircase=True)
+		648*10, 0.10, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -157,7 +159,12 @@ class rsrcnn:
 			biases = tf.get_variable(initializer=tf.contrib.layers.xavier_initializer(), name='biases')
 			out = tf.nn.bias_add(conv, biases)
 
-			self.conv[name] = tf.nn.relu(out, name=scope.name)
+			relu_out = tf.nn.relu(out, name=scope.name)
+
+			 self.conv[name] = tf.contrib.layers.batch_norm(relu_out, 
+                                          center=True, scale=True, 
+                                          is_training=self.is_training,
+                                          scope='bn')
 			self.parameters += [kernel, biases]
 			return self.conv[name]
 
@@ -171,11 +178,18 @@ class rsrcnn:
 			filter = tf.get_variable(initializer = tf.contrib.layers.xavier_initializer_conv2d(),
 									name='weights')
 			if relu:
-				return tf.nn.relu(tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
+				out =  tf.nn.relu(tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
 					strides=strides, padding=pad))
 			else:
-				return tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
+				out = tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
 					strides=strides, padding=pad)
+
+			return tf.contrib.layers.batch_norm(out, 
+                                          center=True, scale=True, 
+                                          is_training=self.is_training,
+                                          scope='bn')
+
+
 
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
@@ -490,20 +504,23 @@ class rsrcnn:
 		print("loss shape")
 		print(self.loss.get_shape())
 
-		#self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
-		self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
-		#self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
-		#self.optimizer = tf.train.RMSPropOptimizer(learning_rate=FLAGS.learning_rate)
-		
+		update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+    	with tf.control_dependencies(update_ops):
 
-		# self.gradients = self.optimizer.compute_gradients(self.loss)
+			#self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
+			self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
+			#self.optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
+			#self.optimizer = tf.train.RMSPropOptimizer(learning_rate=FLAGS.learning_rate)
+			
 
-		# self.capped_gradients = [( tf.clip_by_value( grad, -self.max_gradient_norm, self.max_gradient_norm ), variable ) for
-		# 																grad, variable in self.gradients if grad is not None]
+			# self.gradients = self.optimizer.compute_gradients(self.loss)
 
-		# self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
+			# self.capped_gradients = [( tf.clip_by_value( grad, -self.max_gradient_norm, self.max_gradient_norm ), variable ) for
+			# 																grad, variable in self.gradients if grad is not None]
 
-		self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
+			# self.train_op = self.optimizer.apply_gradients(self.capped_gradients)
+
+			self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
 
 	def initialize_variable(self, scope_name, var_name, shape):
 		with tf.variable_scope(scope_name) as scope:
@@ -686,7 +703,8 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 
 			fd = {	model.distances    : train_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.groundtruths : train_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
+					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+					model.is_training  : 1
 				}
 
 			_, train_loss, summary, lr = sess.run([model.train_op, model.loss, merged, model.learning_rate], feed_dict=fd)
@@ -705,7 +723,8 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 
 			fd = {	model.distances    : val_distances[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.groundtruths : val_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
-					model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
+					model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+					model.is_training  : 0
 					}
 
 			output, loss, summary = sess.run([model.output, model.loss, merged], feed_dict=fd)
@@ -754,7 +773,8 @@ def test(sess, model, val_images, val_groundtruths, val_distances):
 	for i in tqdm(range(len(val_images) // FLAGS.batch_size)):
 
 		fd = {	
-				model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
+				model.imgs         : val_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+				model.is_training  : 0
 				}
 
 		output = sess.run(model.output, feed_dict=fd)
@@ -795,7 +815,8 @@ def test_submission(sess, model, test_images):
 	for i in tqdm(range(len(test_images) // FLAGS.batch_size)):
 
 		fd = {	
-				model.imgs : test_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size]
+				model.imgs 		  : test_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
+				model.is_training : 0
 			}
 
 		output = sess.run(model.output, feed_dict=fd)
