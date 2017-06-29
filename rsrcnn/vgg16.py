@@ -387,60 +387,60 @@ class rsrcnn:
 			images = self.preprocess(name='preprocess')
 
 			conv1_1 = self.conv2d    (input = images,  filter_shape = [3, 3, 3,   64],  name = "conv1_1")
-			  bn1_1 = self.batch_norm(input = conv1_1, name = "bn1_1")
+			bn1_1   = self.batch_norm(input = conv1_1, name = "bn1_1")
 			conv1_2 = self.conv2d    (input =   bn1_1, filter_shape = [3, 3, 64,  64],  name = "conv1_2")
-			  bn1_2 = self.batch_norm(input = conv1_2, name = "bn1_2")
+			bn1_2   = self.batch_norm(input = conv1_2, name = "bn1_2")
 			pool1   = self.max_pool  (input =   bn1_2, name = "pool1")
 
 
 			conv2_1 = self.conv2d    (input = pool1,   filter_shape = [3, 3, 64,  128], name = "conv2_1")
-			  bn2_1 = self.batch_norm(input = conv2_1, name = "bn2_1")
+			bn2_1   = self.batch_norm(input = conv2_1, name = "bn2_1")
 			conv2_2 = self.conv2d    (input =   bn2_1, filter_shape = [3, 3, 128, 128], name = "conv2_2")
-			  bn2_2 = self.batch_norm(input = conv2_2, name = "bn2_2")
+			bn2_2   = self.batch_norm(input = conv2_2, name = "bn2_2")
 			pool2   = self.max_pool  (input =   bn2_2, name = "pool2")
 
 
 			conv3_1 = self.conv2d    (input = pool2,   filter_shape = [3, 3, 128, 256], name = "conv3_1")
-			  bn3_1 = self.batch_norm(input = conv3_1, name = "bn3_1")
+			bn3_1   = self.batch_norm(input = conv3_1, name = "bn3_1")
 			conv3_2 = self.conv2d    (input =   bn3_1, filter_shape = [3, 3, 256, 256], name = "conv3_2")
-			  bn3_2 = self.batch_norm(input = conv3_2, name = "bn3_2")
+			bn3_2   = self.batch_norm(input = conv3_2, name = "bn3_2")
 			conv3_3 = self.conv2d    (input =   bn3_2, filter_shape = [3, 3, 256, 256], name = "conv3_3")
-			  bn3_3 = self.batch_norm(input = conv3_3, name = "bn3_3")
+			bn3_3   = self.batch_norm(input = conv3_3, name = "bn3_3")
 			pool3   = self.max_pool  (input =   bn3_3, name = "pool3")
 
 			conv4_1 = self.conv2d    (input = pool3,   filter_shape = [3, 3, 256, 512], name = "conv4_1")
-			  bn4_1 = self.batch_norm(input = conv4_1, name = "bn4_1")
+			bn4_1   = self.batch_norm(input = conv4_1, name = "bn4_1")
 			conv4_2 = self.conv2d    (input =   bn4_1, filter_shape = [3, 3, 512, 512], name = "conv4_2")
-			  bn4_2 = self.batch_norm(input = conv4_2, name = "bn4_2")
+			bn4_2   = self.batch_norm(input = conv4_2, name = "bn4_2")
 			conv4_3 = self.conv2d    (input =   bn4_2, filter_shape = [3, 3, 512, 512], name = "conv4_3")
-			  bn4_3 = self.batch_norm(input = conv4_3, name = "bn4_3")
+			bn4_3   = self.batch_norm(input = conv4_3, name = "bn4_3")
 			pool4   = self.max_pool  (input =   bn4_3, name = "pool4")
 
 
 			conv5_1 = self.conv2d    (input = pool4,   filter_shape = [3, 3, 512, 512], name = "conv5_1")
-			  bn5_1 = self.batch_norm(input = conv5_1, name = "bn5_1")
+			bn5_1   = self.batch_norm(input = conv5_1, name = "bn5_1")
 			conv5_2 = self.conv2d    (input =   bn5_1, filter_shape = [3, 3, 512, 512], name = "conv5_2")
-			  bn5_2 = self.batch_norm(input = conv5_2, name = "bn5_2")
+			bn5_2   = self.batch_norm(input = conv5_2, name = "bn5_2")
 			conv5_3 = self.conv2d    (input =   bn5_2, filter_shape = [3, 3, 512, 512], name = "conv5_3")
-			  bn5_3 = self.batch_norm(input = conv5_3, name = "bn5_3")
+			bn5_3   = self.batch_norm(input = conv5_3, name = "bn5_3")
 			pool5   = self.max_pool  (input =   bn5_3, name = "pool5")
 
 
 			# No padding in c14-18 and DCs
 			conv14 = self.conv2d    (input = pool5,  filter_shape = [7, 7, 512,  2048], name = "conv14")
-			  bn14 = self.batch_norm(input = conv14, name = "bn14")
+			bn14   = self.batch_norm(input = conv14, name = "bn14")
 			conv15 = self.conv2d    (input =   bn14, filter_shape = [1, 1, 2048, 512],  name = "conv15")
-			  bn15 = self.batch_norm(input = conv15, name = "bn15")
+			bn15   = self.batch_norm(input = conv15, name = "bn15")
 			conv16 = self.conv2d    (input =   bn15,  filter_shape = [1, 1, 512,  1],    name = "conv16")
-			  bn16 = self.batch_norm(input = conv16, name = "bn16")
+			bn16   = self.batch_norm(input = conv16, name = "bn16")
 
 
 			conv17 = self.conv2d    (input = pool4,   filter_shape = [1, 1, 512,  1],    name = "conv17")
-			  bn17 = self.batch_norm(input = conv17, name = "bn17")
+			bn17   = self.batch_norm(input = conv17, name = "bn17")
 
 
 			conv18 = self.conv2d    (input = pool3, filter_shape = [1, 1, 256,  1],    name = "conv18")
-			  bn18 = self.batch_norm(input = conv18, name = "bn18")
+			bn18   = self.batch_norm(input = conv18, name = "bn18")
 
 
 
