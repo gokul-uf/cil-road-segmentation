@@ -386,108 +386,82 @@ class rsrcnn:
 
 			images = self.preprocess(name='preprocess')
 
-			conv1_1 = self.conv2d(input = images,  filter_shape = [3, 3, 3,   64],  name = "conv1_1")
-			bn1_1   = self.batch_norm(input = conv1_1, name="bn1_1")
-			# print("conv1_1 shape")
-			# print(conv1_1.get_shape())
+			conv1_1 = self.conv2d    (input = images,  filter_shape = [3, 3, 3,   64],  name = "conv1_1")
+			  bn1_1 = self.batch_norm(input = conv1_1, name = "bn1_1")
+			conv1_2 = self.conv2d    (input =   bn1_1, filter_shape = [3, 3, 64,  64],  name = "conv1_2")
+			  bn1_2 = self.batch_norm(input = conv1_2, name = "bn1_2")
+			pool1   = self.max_pool  (input =   bn1_2, name = "pool1")
 
-			conv1_2 = self.conv2d(input = bn1_1, filter_shape = [3, 3, 64,  64],  name = "conv1_2")
-			pool1 = self.max_pool(input = conv1_2, name = "pool1")
 
-			# print("pool1 shape")
-			# print(pool1.get_shape())
+			conv2_1 = self.conv2d    (input = pool1,   filter_shape = [3, 3, 64,  128], name = "conv2_1")
+			  bn2_1 = self.batch_norm(input = conv2_1, name = "bn2_1")
+			conv2_2 = self.conv2d    (input =   bn2_1, filter_shape = [3, 3, 128, 128], name = "conv2_2")
+			  bn2_2 = self.batch_norm(input = conv2_2, name = "bn2_2")
+			pool2   = self.max_pool  (input =   bn2_2, name = "pool2")
 
-			conv2_1 = self.conv2d(input = pool1,   filter_shape = [3, 3, 64,  128], name = "conv2_1")
-			conv2_2 = self.conv2d(input = conv2_1, filter_shape = [3, 3, 128, 128], name = "conv2_2")
-			pool2 = self.max_pool(input = conv2_2, name = "pool2")
 
-			conv3_1 = self.conv2d(input = pool2,   filter_shape = [3, 3, 128, 256], name = "conv3_1")
-			conv3_2 = self.conv2d(input = conv3_1, filter_shape = [3, 3, 256, 256], name = "conv3_2")
-			conv3_3 = self.conv2d(input = conv3_2, filter_shape = [3, 3, 256, 256], name = "conv3_3")
-			pool3 = self.max_pool(input = conv3_3, name = "pool3")
+			conv3_1 = self.conv2d    (input = pool2,   filter_shape = [3, 3, 128, 256], name = "conv3_1")
+			  bn3_1 = self.batch_norm(input = conv3_1, name = "bn3_1")
+			conv3_2 = self.conv2d    (input =   bn3_1, filter_shape = [3, 3, 256, 256], name = "conv3_2")
+			  bn3_2 = self.batch_norm(input = conv3_2, name = "bn3_2")
+			conv3_3 = self.conv2d    (input =   bn3_2, filter_shape = [3, 3, 256, 256], name = "conv3_3")
+			  bn3_3 = self.batch_norm(input = conv3_3, name = "bn3_3")
+			pool3   = self.max_pool  (input =   bn3_3, name = "pool3")
 
-			conv4_1 = self.conv2d(input = pool3,   filter_shape = [3, 3, 256, 512], name = "conv4_1")
-			conv4_2 = self.conv2d(input = conv4_1, filter_shape = [3, 3, 512, 512], name = "conv4_2")
-			conv4_3 = self.conv2d(input = conv4_2, filter_shape = [3, 3, 512, 512], name = "conv4_3")
-			pool4 = self.max_pool(input = conv4_3, name = "pool4")
+			conv4_1 = self.conv2d    (input = pool3,   filter_shape = [3, 3, 256, 512], name = "conv4_1")
+			  bn4_1 = self.batch_norm(input = conv4_1, name = "bn4_1")
+			conv4_2 = self.conv2d    (input =   bn4_1, filter_shape = [3, 3, 512, 512], name = "conv4_2")
+			  bn4_2 = self.batch_norm(input = conv4_2, name = "bn4_2")
+			conv4_3 = self.conv2d    (input =   bn4_2, filter_shape = [3, 3, 512, 512], name = "conv4_3")
+			  bn4_3 = self.batch_norm(input = conv4_3, name = "bn4_3")
+			pool4   = self.max_pool  (input =   bn4_3, name = "pool4")
 
-			# print("pool4 shape")
-			# print(pool4.get_shape())
 
-			conv5_1 = self.conv2d(input = pool4,   filter_shape = [3, 3, 512, 512], name = "conv5_1")
-			conv5_2 = self.conv2d(input = conv5_1, filter_shape = [3, 3, 512, 512], name = "conv5_2")
-			conv5_3 = self.conv2d(input = conv5_2, filter_shape = [3, 3, 512, 512], name = "conv5_3")
-			pool5 = self.max_pool(input = conv5_3, name = "pool5")
+			conv5_1 = self.conv2d    (input = pool4,   filter_shape = [3, 3, 512, 512], name = "conv5_1")
+			  bn5_1 = self.batch_norm(input = conv5_1, name = "bn5_1")
+			conv5_2 = self.conv2d    (input =   bn5_1, filter_shape = [3, 3, 512, 512], name = "conv5_2")
+			  bn5_2 = self.batch_norm(input = conv5_2, name = "bn5_2")
+			conv5_3 = self.conv2d    (input =   bn5_2, filter_shape = [3, 3, 512, 512], name = "conv5_3")
+			  bn5_3 = self.batch_norm(input = conv5_3, name = "bn5_3")
+			pool5   = self.max_pool  (input =   bn5_3, name = "pool5")
 
-			# print("pool5 shape")
-			# print(pool5.get_shape())
 
 			# No padding in c14-18 and DCs
-			conv14 = self.conv2d(input = pool5,   filter_shape = [7, 7, 512,  2048], name = "conv14")
-			conv15 = self.conv2d(input = conv14,  filter_shape = [1, 1, 2048, 512],  name = "conv15")
+			conv14 = self.conv2d    (input = pool5,  filter_shape = [7, 7, 512,  2048], name = "conv14")
+			  bn14 = self.batch_norm(input = conv14, name = "bn14")
+			conv15 = self.conv2d    (input =   bn14, filter_shape = [1, 1, 2048, 512],  name = "conv15")
+			  bn15 = self.batch_norm(input = conv15, name = "bn15")
+			conv16 = self.conv2d    (input =   bn15,  filter_shape = [1, 1, 512,  1],    name = "conv16")
+			  bn16 = self.batch_norm(input = conv16, name = "bn16")
 
 
-			# print("conv14 shape")
-			# print(conv14.get_shape())
-
-			# print("conv15 shape")
-			# print(conv15.get_shape())
-
-			# print("conv15 shape")
-			# print(conv15.get_shape())
-
-			conv16 = self.conv2d(input = conv15,  filter_shape = [1, 1, 512,  1],    name = "conv16")
-
-			# print("conv16 shape")
-			# print(conv16.get_shape())
-
-			conv17 = self.conv2d(input = pool4,   filter_shape = [1, 1, 512,  1],    name = "conv17")
-
-			# print("conv17 shape")
-			# print(conv17.get_shape())
-
-			conv18 = self.conv2d(input = pool3,   filter_shape = [1, 1, 256,  1],    name = "conv18")
-
-			# print("conv18 shape")
-			# print(conv18.get_shape())
-
-			# deconv1 = self.deconv2d_custom(conv16, filter_shape=[4, 4], name="deconv_1")
-
-			# print("deconv1 shape")
-			# print(deconv1.get_shape())
+			conv17 = self.conv2d    (input = pool4,   filter_shape = [1, 1, 512,  1],    name = "conv17")
+			  bn17 = self.batch_norm(input = conv17, name = "bn17")
 
 
-			deconv1 = self.deconv2d(conv16, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 13, 13, 1], name="deconv_1")
+			conv18 = self.conv2d    (input = pool3, filter_shape = [1, 1, 256,  1],    name = "conv18")
+			  bn18 = self.batch_norm(input = conv18, name = "bn18")
 
-			# print("deconv1 shape")
-			# print(deconv1.get_shape())
 
-			fusion1 = self.fusion(deconv1, conv17, name="fusion_1")
 
-			# print("fusion1 shape")
-			# print(fusion1.get_shape())
+			deconv1 = self.deconv2d  (input = bn16   , filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 13, 13, 1], name="deconv_1")
+			bn_dc_1 = self.batch_norm(input = deconv1, name = "bn_dc_1")
 
-			deconv2 = self.deconv2d(fusion1, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 26, 26, 1], name="deconv_2")
+			fusion1 = self.fusion(bn_dc_1, bn17, name="fusion_1")
 
-			# print("deconv2 shape")
-			# print(deconv2.get_shape())
+			deconv2 = self.deconv2d  (input = fusion1, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 26, 26, 1], name="deconv_2")
+			bn_dc_2 = self.batch_norm(input = deconv2, name = "bn_dc_2")
 
-			fusion2 = self.fusion(deconv2, conv18, name="fusion_2")
+			fusion2 = self.fusion(bn_dc_2, bn18, name="fusion_2")
 
-			# print("fusion2 shape")
-			# print(fusion2.get_shape())
+			deconv3 = self.deconv2d  (input = fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 208, 208, 1], strides=(1,8,8,1), name="deconv_3", relu = False)
+			bn_dc_3 = self.batch_norm(input = deconv3, name = "bn_dc_3")
 
-			deconv3 = self.deconv2d(deconv2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 208, 208, 1],
-									strides=(1,8,8,1), name="deconv_3", relu = False)
 
-			# print("deconv3 shape")
-			# print(deconv3.get_shape())
-
-			crop = self.crop(deconv3, name="crop")
+			crop   = self.crop (bn_dc_3, name="crop")
 			output = tf.reshape(crop , shape=[self.batch_size, self.inp_dim, self.inp_dim] )
 
-			# print("crop shape")
-			# print(output.get_shape())
+
 			self.output_image = crop
 			self.output = output
 
