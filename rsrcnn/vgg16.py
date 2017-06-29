@@ -150,16 +150,14 @@ class rsrcnn:
 
 		print("params of C1-13 of vgg16 successfully loaded!")
 
-	def conv2d(self, input, filter_shape, strides = (1,1,1,1), activation = tf.nn.relu, pad = "SAME", name = None, stddev=1e-1):
+	def conv2d(self, input, filter_shape, strides = (1,1,1,1), pad = "SAME", name = None, stddev=1e-1):
 		#print("In conv2d")
 		with tf.variable_scope(name, reuse=True) as scope:
 			kernel = tf.get_variable(initializer= tf.contrib.layers.xavier_initializer_conv2d(), name='weights')
 			conv = tf.nn.conv2d(input, kernel, strides, padding=pad)
 
 			biases = tf.get_variable(initializer=tf.contrib.layers.xavier_initializer(), name='biases')
-			out = tf.nn.bias_add(conv, biases)
-
-			self.conv[name] = tf.nn.relu(out, name=scope.name)
+			self.conv[name] = tf.nn.bias_add(conv, biases)
 
 			self.parameters += [kernel, biases]
 			return self.conv[name]
@@ -167,27 +165,26 @@ class rsrcnn:
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
 	# input_shape  => [batch, row, col]
-	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None, stddev=1e-1, relu = True):
+	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None, stddev=1e-1):
 
 		with tf.variable_scope(name, reuse=True) as scope:
-
 			filter = tf.get_variable(initializer = tf.contrib.layers.xavier_initializer_conv2d(),
 									name='weights')
-			if relu:
-				out =  tf.nn.relu(tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
-					strides=strides, padding=pad))
-			else:
-				out = tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
+
+			out = tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
 					strides=strides, padding=pad)
 
 			return out
 
-	def batch_norm(self, input, name=None):
+	def batch_norm(self, input, relu = True, name=None):
 
 		with tf.variable_scope(name) as scope:
-			return tf.contrib.layers.batch_norm(input, 
-										  center=True, scale=True, 
-										  is_training=self.is_training)
+			bn_out = tf.layers.batch_normalization(input, training=self.is_training)
+
+			if relu:
+				return tf.nn.relu(bn_out, name="ReLU")
+			else:
+				return bn_out
 
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
@@ -297,7 +294,7 @@ class rsrcnn:
 
 				else:
 					fraction = conv_input.shape.as_list()[1] / deconv_input.shape.as_list()[1]
-
+					
 					crop_list = []
 					for b in range(self.batch_size):
 						crop_output = tf.image.central_crop(deconv_input[b], central_fraction = fraction)
@@ -449,13 +446,13 @@ class rsrcnn:
 
 			fusion1 = self.fusion(bn_dc_1, bn17, name="fusion_1")
 
-			deconv2 = self.deconv2d  (input = fusion1, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 26, 26, 1], name="deconv_2")
+			deconv2 = self.deconv2d  (input = fusion1, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 25, 25, 1], name="deconv_2")
 			bn_dc_2 = self.batch_norm(input = deconv2, name = "bn_dc_2")
 
 			fusion2 = self.fusion(bn_dc_2, bn18, name="fusion_2")
 
-			deconv3 = self.deconv2d  (input = fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 220, 220, 1], strides=(1,9,9,1), name="deconv_3", relu = False)
-			bn_dc_3 = self.batch_norm(input = deconv3, name = "bn_dc_3")
+			deconv3 = self.deconv2d  (input = fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 220, 220, 1], strides=(1,9,9,1), name="deconv_3")
+			bn_dc_3 = self.batch_norm(input = deconv3, name = "bn_dc_3", relu = False)
 
 
 			crop   = self.crop (bn_dc_3, name="crop")
