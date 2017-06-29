@@ -59,7 +59,7 @@ class rsrcnn:
 		self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
 		self.starter_learning_rate = tf.constant(FLAGS.learning_rate, dtype=tf.float64)
 		self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-		648*10, 0.10, staircase=True)
+		648*20, 0.50, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -161,10 +161,10 @@ class rsrcnn:
 
 			relu_out = tf.nn.relu(out, name=scope.name)
 
-			 self.conv[name] = tf.contrib.layers.batch_norm(relu_out, 
-                                          center=True, scale=True, 
-                                          is_training=self.is_training,
-                                          scope='bn')
+			self.conv[name] = tf.contrib.layers.batch_norm(relu_out, 
+										  center=True, scale=True, 
+										  is_training=self.is_training,
+										  scope='bn')
 			self.parameters += [kernel, biases]
 			return self.conv[name]
 
@@ -185,9 +185,9 @@ class rsrcnn:
 					strides=strides, padding=pad)
 
 			return tf.contrib.layers.batch_norm(out, 
-                                          center=True, scale=True, 
-                                          is_training=self.is_training,
-                                          scope='bn')
+										  center=True, scale=True, 
+										  is_training=self.is_training,
+										  scope='bn')
 
 
 
@@ -370,10 +370,10 @@ class rsrcnn:
 
 		exp_dists = tf.exp(self.distances)
 		loss = tf.nn.weighted_cross_entropy_with_logits(
-												    targets = self.groundtruths,
-												    logits  = self.output,
-												    pos_weight = exp_dists,
-												    name=None
+													targets = self.groundtruths,
+													logits  = self.output,
+													pos_weight = exp_dists,
+													name=None
 												)
 
 
@@ -505,7 +505,7 @@ class rsrcnn:
 		print(self.loss.get_shape())
 
 		update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-    	with tf.control_dependencies(update_ops):
+		with tf.control_dependencies(update_ops):
 
 			#self.optimizer = tf.train.AdamOptimizer(self.learning_rate)
 			self.optimizer = tf.train.MomentumOptimizer(learning_rate=self.learning_rate, momentum=self.momentum)
