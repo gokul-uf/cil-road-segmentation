@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-7 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-6 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -151,16 +151,17 @@ class rsrcnn:
 
 		print("params of C1-13 of vgg16 successfully loaded!")
 
-	def conv2d(self, input, filter_shape, strides = (1,1,1,1), pad = "SAME", name = None, stddev=1e-1):
+	def conv2d(self, input, filter_shape, strides = (1,1,1,1), pad = "SAME", name = None, stddev=1e-1, drop_out = False):
 		#print("In conv2d")
 		with tf.variable_scope(name, reuse=True) as scope:
 			kernel = tf.get_variable(initializer= tf.contrib.layers.xavier_initializer_conv2d(), name='weights')
 			conv = tf.nn.conv2d(input, kernel, strides, padding=pad)
 
-			drop_out = tf.nn.dropout(conv, keep_prob=self.keep_prob)
+			if drop_out:
+				conv = tf.nn.dropout(conv, keep_prob=self.keep_prob)
 
 			biases = tf.get_variable(initializer=tf.contrib.layers.xavier_initializer(), name='biases')
-			self.conv[name] = tf.nn.bias_add(drop_out, biases)
+			self.conv[name] = tf.nn.bias_add(conv, biases)
 
 			self.parameters += [kernel, biases]
 			return self.conv[name]
@@ -168,7 +169,7 @@ class rsrcnn:
 	# no padding in deconv layer
 	# filter_shape => [batch, row, col]
 	# input_shape  => [batch, row, col]
-	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None, stddev=1e-1):
+	def deconv2d(self, input, filter_shape, output_shape, strides = (1,2,2,1), pad = 'SAME', name = None, stddev=1e-1, drop_out = False):
 
 		with tf.variable_scope(name, reuse=True) as scope:
 			filter = tf.get_variable(initializer = tf.contrib.layers.xavier_initializer_conv2d(),
@@ -177,9 +178,10 @@ class rsrcnn:
 			out = tf.nn.conv2d_transpose(value=input, filter=filter, output_shape=output_shape,
 					strides=strides, padding=pad)
 
-			drop_out = tf.nn.dropout(out, keep_prob=self.keep_prob)
+			if drop_out:
+				out = tf.nn.dropout(out, keep_prob=self.keep_prob)
 
-			return drop_out
+			return out
 
 	def batch_norm(self, input, relu = True, name=None):
 
@@ -369,12 +371,20 @@ class rsrcnn:
 		#loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = self.groundtruths, logits = self.output)
 
 		exp_dists = tf.exp(self.distances)
-		loss = tf.nn.weighted_cross_entropy_with_logits(
+		loss_1 = tf.nn.weighted_cross_entropy_with_logits(
 													targets = self.groundtruths,
 													logits  = self.output,
 													pos_weight = exp_dists,
 													name=None
 												)
+
+		loss_2 = tf.losses.hinge_loss(
+									labels = self.groundtruths,
+									logits = self.output,
+									reduction = None
+									)
+
+		loss = tf.add(loss_1, loss_2, name="total_loss")
 
 
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
@@ -696,7 +706,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 					model.groundtruths : train_groundtruths[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.imgs         : train_images[i * FLAGS.batch_size: (i + 1) * FLAGS.batch_size],
 					model.is_training  : 1,
-					model.keep_prob    : 0.5
+					model.keep_prob    : 0.8
 				}
 
 			_, train_loss, summary, lr = sess.run([model.train_op, model.loss, merged, model.learning_rate], feed_dict=fd)
