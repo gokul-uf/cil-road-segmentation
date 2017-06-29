@@ -163,8 +163,8 @@ class rsrcnn:
 
 			self.conv[name] = tf.contrib.layers.batch_norm(relu_out, 
 										  center=True, scale=True, 
-										  is_training=self.is_training,
-										  name='bn')
+										  is_training=self.is_training)
+								
 			self.parameters += [kernel, biases]
 			return self.conv[name]
 
@@ -186,8 +186,7 @@ class rsrcnn:
 
 			return tf.contrib.layers.batch_norm(out, 
 										  center=True, scale=True, 
-										  is_training=self.is_training,
-										  name='bn')
+										  is_training=self.is_training)
 
 
 
