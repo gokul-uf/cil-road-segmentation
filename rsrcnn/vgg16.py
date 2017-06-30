@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-6 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-7 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -60,7 +60,7 @@ class rsrcnn:
 		self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
 		self.starter_learning_rate = tf.constant(FLAGS.learning_rate, dtype=tf.float64)
 		self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-		648*20, 0.90, staircase=True)
+		648*1, 0.96, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -674,6 +674,10 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 			model_path = os.path.join(FLAGS.train_dir, "epoch_12.ckpt")
 			print("Reading model parameters from {0}".format(model_path))
 			model.saver.restore(sess, model_path)
+
+			# new learning rate
+			model.learning_rate = tf.train.exponential_decay(FLAGS.learning_rate, model.global_step,
+			648*1, 0.96, staircase=True)
 
 		except:
 			print("Trained model not found. Exiting!")
