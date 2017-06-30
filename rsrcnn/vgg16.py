@@ -371,20 +371,20 @@ class rsrcnn:
 		#loss = tf.nn.sigmoid_cross_entropy_with_logits(labels = self.groundtruths, logits = self.output)
 
 		exp_dists = tf.exp(self.distances)
-		loss_1 = tf.nn.weighted_cross_entropy_with_logits(
+		loss = tf.nn.weighted_cross_entropy_with_logits(
 													targets = self.groundtruths,
 													logits  = self.output,
 													pos_weight = exp_dists,
 													name=None
 												)
 
-		loss_2 = tf.losses.hinge_loss(
-									labels = self.groundtruths,
-									logits = self.output,
-									reduction = None
-									)
+		# loss_2 = tf.losses.hinge_loss(
+		# 							labels = self.groundtruths,
+		# 							logits = self.output,
+		# 							reduction = NONE
+		# 							)
 
-		loss = tf.add(loss_1, loss_2, name="total_loss")
+		# loss = tf.add(loss_1, loss_2, name="total_loss")
 
 
 		return tf.reduce_mean( tf.reduce_sum(loss, axis=[1,2]) )
