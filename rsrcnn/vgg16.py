@@ -13,7 +13,7 @@ from tqdm import tqdm
 import time
 import re
 
-tf.app.flags.DEFINE_float("learning_rate"               , 1e-7 , "Learning rate.")
+tf.app.flags.DEFINE_float("learning_rate"               , 1e-5 , "Learning rate.")
 tf.app.flags.DEFINE_float("momentum"                    , 0.9  , "Momentum")
 tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradients to this norm.")
 
@@ -60,7 +60,7 @@ class rsrcnn:
 		self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
 		self.starter_learning_rate = tf.constant(FLAGS.learning_rate, dtype=tf.float64)
 		self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-		648*1, 0.96, staircase=True)
+		648*5, 0.96, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -454,6 +454,10 @@ class rsrcnn:
 			conv18 = self.conv2d    (input = pool3, filter_shape = [1, 1, 256,  1],    name = "conv18")
 			bn18   = self.batch_norm(input = conv18, name = "bn18")
 
+			#----new---------
+			conv19 = self.conv2d    (input = pool2, filter_shape = [1, 1, 128,  1],    name = "conv19")
+			bn19   = self.batch_norm(input = conv19, name = "bn19")
+			#----new________
 
 
 			deconv1 = self.deconv2d  (input = bn16   , filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 13, 13, 1], name="deconv_1")
@@ -466,15 +470,23 @@ class rsrcnn:
 
 			fusion2 = self.fusion(bn_dc_2, bn18, name="fusion_2")
 
-			deconv3 = self.deconv2d  (input = fusion2, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 220, 220, 1], strides=(1,9,9,1), name="deconv_3")
+			#-------new--------------
+			deconv4 = self.deconv2d  (input = fusion2, filter_shape=[4, 4, 1, 1], output_shape=[self.batch_size, 50, 50, 1], name="deconv_4")
+			bn_dc_4  = self.batch_norm(input = deconv4, name = "bn_dc_4")
+
+			fusion4 = self.fusion(bn_dc_4, bn19, name="fusion_4")
+
+			#------new---------------
+
+			deconv3 = self.deconv2d  (input = fusion4, filter_shape=[16, 16, 1, 1], output_shape=[self.batch_size, 200, 200, 1], strides=(1,4,4,1), name="deconv_3")
 			bn_dc_3 = self.batch_norm(input = deconv3, name = "bn_dc_3", relu = False)
 
 
-			crop   = self.crop (bn_dc_3, name="crop")
-			output = tf.reshape(crop , shape=[self.batch_size, self.inp_dim, self.inp_dim] )
+			#crop   = self.crop (bn_dc_3, name="crop")
+			output = tf.reshape(bn_dc_3 , shape=[self.batch_size, self.inp_dim, self.inp_dim] )
 
 
-			self.output_image = crop
+			self.output_image = bn_dc_3
 			self.output = output
 
 			print("building model done")
@@ -556,10 +568,13 @@ class rsrcnn:
 		self.initialize_variable("conv17", "biases" ,             [1])
 		self.initialize_variable("conv18", "weights", [1, 1, 256,  1])
 		self.initialize_variable("conv18", "biases" ,             [1])
+		self.initialize_variable("conv19", "weights", [1, 1, 128,  1])
+		self.initialize_variable("conv19", "biases" ,             [1])
 
 
 		self.initialize_variable("deconv_1", "weights", [4, 4, 1, 1])
 		self.initialize_variable("deconv_2", "weights", [4, 4, 1, 1])
+		self.initialize_variable("deconv_4", "weights", [3, 3, 1, 1])
 		self.initialize_variable("deconv_3", "weights", [16, 16, 1, 1])
 
 	def save(self, sess, epoch):
@@ -955,7 +970,7 @@ if __name__ == '__main__':
 		print("Creating model")
 		model = rsrcnn(FLAGS.WEIGHTS_PATH, sess)
 		#tf.summary.image('image-output', tf.expand_dims(model.output, -1))
-
+		
 		images, groundtruths, distances = read_data()
 
 		# number of total patches = 381
