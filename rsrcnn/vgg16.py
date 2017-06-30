@@ -60,7 +60,7 @@ class rsrcnn:
 		self.global_step = tf.Variable(0, trainable=False, dtype=tf.int64)
 		self.starter_learning_rate = tf.constant(FLAGS.learning_rate, dtype=tf.float64)
 		self.learning_rate = tf.train.exponential_decay(self.starter_learning_rate, self.global_step,
-		648*10, 0.50, staircase=True)
+		648*20, 0.90, staircase=True)
 
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
@@ -80,7 +80,7 @@ class rsrcnn:
 
 		self.build_optimizer()
 
-		self.saver = tf.train.Saver(max_to_keep=1000)
+		self.saver = tf.train.Saver(max_to_keep=5)
 
 	def load_vgg16_weights(self, weights_dir, name=None):
 
