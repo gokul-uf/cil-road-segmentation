@@ -670,6 +670,124 @@ def read_test_data():
 
 	return images
 
+def compute_F1(outputs_list, val_groundtruths, epoch):
+	# Calculate F1 scoare for images. 
+	true_positives = 0
+	true_negatives = 0
+	false_positives = 0
+	false_negatives = 0
+
+	for i in range(len(val_groundtruths)):
+		val_groundtruths[i][ val_groundtruths[i] == 1 ] = 255
+
+	image_num = 0
+	for i in range(len(outputs_list)):
+		
+		outputs_list[i][ outputs_list[i] >= 0 ] = 255
+		outputs_list[i][ outputs_list[i] <  0 ] = 0
+
+		for j in range(FLAGS.batch_size):
+
+			output = outputs_list[i][j]
+			val_groundtruth = val_groundtruths[i*FLAGS.batch_size + j]
+
+			# Perfect squares 16x16
+			for subpatch_i in range(0, 192, 16):
+				for subpatch_j in range(0, 192, 16): 
+					output_subpatch = output[subpatch_i : subpatch_i + 16, subpatch_j : subpatch_j + 16]
+					#print("Output: ", output_subpatch.shape, output_subpatch)
+					val_groundtruths_subpatch = val_groundtruth[subpatch_i : subpatch_i + 16, subpatch_j : subpatch_j + 16]
+					#print("Val ground :", val_groundtruths_subpatch.shape, val_groundtruths_subpatch)
+
+					# If more then 25% of the pixels are road subpatch is road 
+					output_result = 1 if len(np.argwhere(output_subpatch == 255)) > 64  else 0  
+					val_groundtruths_result = 1 if len(np.argwhere(val_groundtruths_subpatch == 255)) > 64 else 0
+
+					if output_result == 1:
+						if val_groundtruths_result == 1:
+							true_positives += 1
+						else:
+							false_positives += 1
+					else:
+						if val_groundtruths_result == 1:
+							false_negatives += 1
+						else:
+							true_negatives += 1	 	
+
+			#Remaining last line of 8 x 16
+			subpatch_i = 192				
+			for subpatch_j in range(0, 192, 16): 
+				output_subpatch = output[subpatch_i : subpatch_i + 8, subpatch_j : subpatch_j + 16]
+				val_groundtruths_subpatch = val_groundtruth[subpatch_i : subpatch_i + 8, subpatch_j : subpatch_j + 16]
+
+				# If more then 25% of the pixels are road subpatch is road 
+				output_result = 1 if len(np.argwhere(output_subpatch == 255)) > 32 else 0  
+				val_groundtruths_result = 1 if len(np.argwhere(val_groundtruths_subpatch == 255)) > 32 else 0
+
+				if output_result == 1:
+					if val_groundtruths_result == 1:
+						true_positives += 1
+					else:
+						false_positives += 1
+				else:
+					if val_groundtruths_result == 1:
+						false_negatives += 1
+					else:
+						true_negatives += 1	
+
+			#Remaining last column of 16 x 8
+			for subpatch_i in range(0, 192, 16):
+				subpatch_j = 192
+				output_subpatch = output[subpatch_i : subpatch_i + 16, subpatch_j : subpatch_j + 8]
+				val_groundtruths_subpatch = val_groundtruth[subpatch_i : subpatch_i + 16, subpatch_j : subpatch_j + 8]
+
+				# If more then 25% of the pixels are road subpatch is road 
+				output_result = 1 if len(np.argwhere(output_subpatch == 255)) > 32 else 0  
+				val_groundtruths_result = 1 if len(np.argwhere(val_groundtruths_subpatch == 255)) > 32 else 0
+
+				if output_result == 1:
+					if val_groundtruths_result == 1:
+						true_positives += 1
+					else:
+						false_positives += 1
+				else:
+					if val_groundtruths_result == 1:
+						false_negatives += 1
+					else:
+						true_negatives += 1
+
+			#Remaining bottom right corner 8x8				
+			subpatch_i = 192
+			subpatch_j = 192			
+			output_subpatch = output[subpatch_i : subpatch_i + 8, subpatch_j : subpatch_j + 8]
+			val_groundtruths_subpatch = val_groundtruth[subpatch_i : subpatch_i + 8, subpatch_j : subpatch_j + 8]
+
+			# If more then 25% of the pixels are road subpatch is road 
+			output_result = 1 if len(np.argwhere(output_subpatch == 255)) > 16 else 0  
+			val_groundtruths_result = 1 if len(np.argwhere(val_groundtruths_subpatch == 255)) > 16 else 0
+		
+			if output_result == 1:
+				if val_groundtruths_result == 1:
+					true_positives += 1
+				else:
+					false_positives += 1
+			else:
+				if val_groundtruths_result == 1:
+					false_negatives += 1
+				else:
+					true_negatives += 1						 				  
+
+			image_num += 1
+
+
+	# precision = true_positives / (true_positives + false_positives)
+	# recall = true_positives / (true_positives + false_negatives)
+	F1 = 2 * true_positives / (2 * true_positives + false_positives + false_negatives)
+	print("TP TN FP FN: ", true_positives, true_negatives, false_positives, false_negatives)
+	print("F1 score for epoch {0} = {1}".format(epoch, F1))
+	sys.stdout.flush()	
+
+
 def train(sess, model, train_images, train_groundtruths, train_distances, val_images, val_groundtruths, val_distances, load=None):
 
 	merged = tf.summary.merge_all()
@@ -739,6 +857,7 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 		sys.stdout.flush()
 
 		val_losses = []
+		outputs_list = []
 		# validate on validation set
 		for i in tqdm(range(len(val_images) // FLAGS.batch_size)):
 
@@ -751,11 +870,16 @@ def train(sess, model, train_images, train_groundtruths, train_distances, val_im
 
 			output, loss, summary = sess.run([model.output, model.loss, merged], feed_dict=fd)
 			val_losses.append(loss)
+			outputs_list.append(output)
+			
+
 			test_writer.add_summary(summary, epoch*648 + i)
 
 		avg_val_loss = sum(val_losses)/len(val_losses)
 		print( "validation loss = {0}".format(avg_val_loss) )
 		sys.stdout.flush()
+
+		compute_F1(outputs_list, val_groundtruths, epoch)
 
 		if epoch%3 == 0:
 			model.save(sess, epoch)
@@ -976,7 +1100,6 @@ if __name__ == '__main__':
 		# number of total patches = 381
 		# validation = 21
 		# training = 360
-
 		val_images = images[0:len(images)//10]
 		train_images = images[len(images)//10:]
 
