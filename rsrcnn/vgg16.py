@@ -665,7 +665,19 @@ def read_test_data():
 	for file in sorted_file_names:	
 		
 		image = ndimage.imread(FLAGS.TEST_IMAGES_PATH + file)
-		images.append(image)
+		#Create patches
+		for i in range(0, 401, 40):
+			for j in range(0, 401, 40):
+				images.append(image[i:i + 200, j:j + 200])
+		j = 408
+		for i in range(0, 401, 40):
+			images.append(image[i:i + 200, j:j + 200])
+		i = 408
+		for j in range(0, 401, 40):
+			images.append(image[i:i + 200, j:j + 200])
+
+		images.append(image[408:608, 408:608])
+
 	print("Number of images: {0}".format(len(images)))
 
 	return images
@@ -974,37 +986,39 @@ def test_submission(sess, model, test_images):
 			outputs_list.append(output[img])
 
 
-	# convert to binary array
-	image_num = 0
+	# convert all non-road values to 0.
 	for i in range(len(outputs_list)):
-
-		outputs_list[i][ outputs_list[i] >= 0 ] = 1
 		outputs_list[i][ outputs_list[i] <  0 ] = 0
-
 
 	# create full 608x608 binary output images
 	full_images = []
 	image_num = 1
-	for i in range(0,len(outputs_list),16):
-		
-		full_image = None
+	no_image_patches = 144
+	for i in range(0,len(outputs_list), no_image_patches):
 
-		for j in range(i,i+16,4):
+		full_image = np.zeros((608, 608))
+		patch_index = 0
 
-			left  = np.hstack((outputs_list[j], outputs_list[j+1]))
-			right = np.hstack((outputs_list[j+2], outputs_list[j+3][:, 192:])) # only last eight columns
-			row   = np.hstack((left, right))
+		for patch_i in range(0, 401, 40):
+			for patch_j in range(0, 401, 40):
+				full_image[patch_i:patch_i + 200, patch_j:patch_j + 200] += outputs_list[i + patch_index]
+				patch_index += 1
 
-			if full_image is None:
-				full_image = row
+		patch_j = 408
+		for patch_i in range(0, 401, 40):
+			full_image[patch_i:patch_i + 200, patch_j:patch_j + 200] += outputs_list[i + patch_index]
+			patch_index += 1
 
-			else:
-				if (j+4)%16==0:
-					full_image = np.vstack(( full_image, row[192:, :] ))
-				else:
-					full_image = np.vstack((full_image, row))
+		patch_i = 408
+		for patch_j in range(0, 401, 40):
+			full_image[patch_i:patch_i + 200, patch_j:patch_j + 200] += outputs_list[i + patch_index]
+			patch_index +=1
 
-		#full_images.append(full_image)
+		full_image[408:608, 408:608] += outputs_list[i + patch_index]
+
+		#TODO Decide if we want to use thresholding, tahn, etc.
+		full_image[ full_image >  0 ] = 255
+
 		misc.imsave(os.path.join(FLAGS.TEST_OUTPUT_IMAGES_PATH, str(image_num) + '.jpg'), full_image)
 		image_num += 1
 
@@ -1074,12 +1088,12 @@ if __name__ == '__main__':
 
 		images = read_test_data()
 
-		# number of total test patches = 800
+		# number of total test patches = 7200
 		# image 1, patch 0,0     => 0
-		# image 1, patch 0,200   => 1
-		# image 1, patch 0,400   => 2
-		# image 1, patch 0,408   => 3.......
-		# image 1, patch 408,408 => 15
+		# image 1, patch 0,40   => 1
+		# image 1, patch 0,80   => 2
+		# image 1, patch 0,100   => 3.......
+		# image 1, patch 408,408 => 144
 		
 		test_submission(sess, model, images)
 
