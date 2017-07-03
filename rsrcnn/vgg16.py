@@ -20,8 +20,10 @@ tf.app.flags.DEFINE_float("max_gradient_norm"           , 5.0   , "Clip gradient
 tf.app.flags.DEFINE_integer("batch_size"                , 10    , "batch size.")
 tf.app.flags.DEFINE_integer("num_epochs"                , 5000  , "number of epochs.")
 
+
 #tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/generate/patches/sat/", "path to images.")
 tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/overlap/sat/", "path to images.")
+tf.app.flags.DEFINE_string("CANNY_PATH"              , "./data/CIL/overlap/canny/blue/edges2/", "path to canny-s.")
 tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_set_patches/", "path to patches from test images.")
 tf.app.flags.DEFINE_string("TEST_OUTPUT_IMAGES_PATH"  , "./rsrcnn/kaggle/test_set_output/", "path to images generated from test images.")
 #tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/generate/patches/org/", "path to labels.")
@@ -65,7 +67,7 @@ class rsrcnn:
 		self.momentum = FLAGS.momentum
 		self.max_gradient_norm = FLAGS.max_gradient_norm
 
-		self.imgs         = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim, 3])
+		self.imgs         = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim, 4])
 		self.groundtruths = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
 		self.distances    = tf.placeholder(tf.float32, [self.batch_size, self.inp_dim, self.inp_dim])
 
@@ -334,7 +336,7 @@ class rsrcnn:
 
 	def preprocess(self, name=None):
 		with tf.variable_scope(name) as scope:
-			mean = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
+			mean = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32, shape=[1, 1, 1, 4], name='img_mean')
 		return self.imgs - mean
 
 	def fc_layer(self, input, shape, name=None, init=False, end=False):
@@ -398,7 +400,7 @@ class rsrcnn:
 
 			images = self.preprocess(name='preprocess')
 
-			conv1_1 = self.conv2d    (input = images,  filter_shape = [3, 3, 3,   64],  name = "conv1_1")
+			conv1_1 = self.conv2d    (input = images,  filter_shape = [3, 3, 4,   64],  name = "conv1_1")
 			bn1_1   = self.batch_norm(input = conv1_1, name = "bn1_1")
 			conv1_2 = self.conv2d    (input =   bn1_1, filter_shape = [3, 3, 64,  64],  name = "conv1_2")
 			bn1_2   = self.batch_norm(input = conv1_2, name = "bn1_2")
@@ -526,7 +528,7 @@ class rsrcnn:
 
 	def initialize_all_variables(self):
 
-		self.initialize_variable("conv1_1", "weights", [3, 3, 3,   64])
+		self.initialize_variable("conv1_1", "weights", [3, 3, 4,   64])
 		self.initialize_variable("conv1_1", "biases" ,            [64])
 		self.initialize_variable("conv1_2", "weights", [3, 3, 64,  64])
 		self.initialize_variable("conv1_2", "biases" ,            [64])
@@ -629,6 +631,20 @@ def read_data():
 		images.append(image)
 	print("Number of images: {0}".format(len(images)))
 
+	print("Reading blue canny")
+	cannies = []
+	for file in listdir(FLAGS.CANNY_PATH):
+		canny = ndimage.imread(FLAGS.CANNY_PATH + file)
+		canny = canny[:,:, np.newaxis]
+		cannies.append(canny)
+	print("Number of cannies: {0}".format(len(cannies)))
+
+	images_with_canny = []
+	for index, image in enumerate(images):
+		image_with_canny = np.concatenate((image, cannies[index]), axis = 2)
+		print(image_with_canny.shape)
+		images_with_canny.append(image_with_canny)
+
 	print("Reading labels")
 	groundtruths = []
 	for file in listdir(FLAGS.GROUNDTRUTHS_PATH):
@@ -643,12 +659,12 @@ def read_data():
 
 	print("Randomizing inputs")
 	# randomly permute
-	zipped_list = list(zip(images, groundtruths, distances))
+	zipped_list = list(zip(images_with_canny, groundtruths, distances))
 	np.random.shuffle(zipped_list)
 
-	images, groundtruths, distances = zip(*zipped_list)
+	images_with_canny, groundtruths, distances = zip(*zipped_list)
 
-	return (images, groundtruths, distances)
+	return (images_with_canny, groundtruths, distances)
 
 def read_test_data():
 
