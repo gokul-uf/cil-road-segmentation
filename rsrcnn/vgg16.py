@@ -990,7 +990,9 @@ def test_submission(sess, model, test_images):
 
 	# convert all non-road values to 0.
 	for i in range(len(outputs_list)):
-		outputs_list[i][ outputs_list[i] <  0 ] = 0
+		outputs_list[i][ outputs_list[i] >= 0 ] = 255
+		outputs_list[i][ outputs_list[i] < 0 ] = 0
+
 
 	# create full 608x608 binary output images
 	full_images = []
