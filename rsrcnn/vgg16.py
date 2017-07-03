@@ -22,7 +22,9 @@ tf.app.flags.DEFINE_integer("num_epochs"                , 5000  , "number of epo
 
 #tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/generate/patches/sat/", "path to images.")
 tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/overlap/sat/", "path to images.")
-tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_set_patches/", "path to patches from test images.")
+#tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_set_patches/", "path to patches from test images.")
+tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_set_full_images/", "path to full test images.")
+
 tf.app.flags.DEFINE_string("TEST_OUTPUT_IMAGES_PATH"  , "./rsrcnn/kaggle/test_set_output/", "path to images generated from test images.")
 #tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/generate/patches/org/", "path to labels.")
 tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/overlap/org/", "path to labels.")
