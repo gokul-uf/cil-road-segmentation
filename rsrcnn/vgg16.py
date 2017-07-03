@@ -989,9 +989,9 @@ def test_submission(sess, model, test_images):
 
 
 	# convert all non-road values to 0.
-	for i in range(len(outputs_list)):
-		outputs_list[i][ outputs_list[i] >= 0 ] = 255
-		outputs_list[i][ outputs_list[i] < 0 ] = 0
+	# for i in range(len(outputs_list)):
+	# 	outputs_list[i][ outputs_list[i] >= 0 ] = 255
+	# 	outputs_list[i][ outputs_list[i] < 0 ] = 0
 
 
 	# create full 608x608 binary output images
@@ -1021,7 +1021,7 @@ def test_submission(sess, model, test_images):
 		full_image[408:608, 408:608] += outputs_list[i + patch_index]
 
 		#TODO Decide if we want to use thresholding, tahn, etc.
-		full_image[ full_image >  0 ] = 255
+		full_image[ full_image >=  0 ] = 255
 
 		misc.imsave(os.path.join(FLAGS.TEST_OUTPUT_IMAGES_PATH, str(image_num) + '.jpg'), full_image)
 		image_num += 1
