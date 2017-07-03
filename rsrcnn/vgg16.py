@@ -684,6 +684,9 @@ def read_test_data():
 	for file in sorted_file_names:	
 		
 		image = ndimage.imread(FLAGS.TEST_IMAGES_PATH + file)
+		canny = ndimage.imread(FLAGS.TEST_IMAGES_CANNY_PATH + file)
+		canny = canny[:,:, np.newaxis]
+		image = np.concatenate((image, canny), axis = 2)
 		#Create patches
 		for i in range(0, 401, 40):
 			for j in range(0, 401, 40):
