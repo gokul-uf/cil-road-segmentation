@@ -455,8 +455,7 @@ def main(argv=None):  # pylint: disable=unused-argument
             # Loop through training steps.
             print ('Total number of iterations = ' + str(int(num_epochs * train_size / BATCH_SIZE)))
 
-            training_indices = range(train_size - VALIDATION_SIZE)
-            validation_indices = range(train_size - VALIDATION_SIZE, train_size)
+            training_indices = range(train_size)
 
             for iepoch in range(num_epochs):
 
@@ -509,7 +508,7 @@ def main(argv=None):  # pylint: disable=unused-argument
         prediction_training_dir = "predictions_training/"
         if not os.path.isdir(prediction_training_dir):
             os.mkdir(prediction_training_dir)
-        for i in validation_indices:
+        for i in range(1, TRAINING_SIZE+1):
             pimg = get_prediction_with_groundtruth(train_data_filename, i)
             Image.fromarray(pimg).save(prediction_training_dir + "prediction_" + str(i) + ".png")
             oimg = get_prediction_with_overlay(train_data_filename, i)
