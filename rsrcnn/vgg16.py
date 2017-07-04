@@ -23,16 +23,24 @@ tf.app.flags.DEFINE_integer("num_epochs"                , 5000  , "number of epo
 
 #tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/generate/patches/sat/", "path to images.")
 tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/CIL/overlap/sat/", "path to images.")
+#tf.app.flags.DEFINE_string("IMAGES_PATH"              , "./data/toy_data/sat/", "path to images.")
+
 tf.app.flags.DEFINE_string("CANNY_PATH"              , "./data/CIL/overlap/canny/blue/edges2/", "path to canny-s.")
+#tf.app.flags.DEFINE_string("CANNY_PATH"              , "./data/toy_data/canny/blue/edges2/", "path to canny-s.")
 
 #tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_set_patches/", "path to patches from test images.")
 tf.app.flags.DEFINE_string("TEST_IMAGES_PATH"         , "./rsrcnn/kaggle/test_set_full_images/", "path to full test images.")
+tf.app.flags.DEFINE_string("TEST_IMAGES_CANNY_PATH"   , "./rsrcnn/kaggle/test_canny/blue/edges2/", "path to the canny test images")
 
 tf.app.flags.DEFINE_string("TEST_OUTPUT_IMAGES_PATH"  , "./rsrcnn/kaggle/test_set_output/", "path to images generated from test images.")
 #tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/generate/patches/org/", "path to labels.")
 tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/CIL/overlap/org/", "path to labels.")
+#tf.app.flags.DEFINE_string("GROUNDTRUTHS_PATH"        , "./data/toy_data/org/", "path to labels.")
+
 #tf.app.flags.DEFINE_string("DISTANCES_PATH"           , "./data/CIL/generate/patches/dst/", "path to distances.")
 tf.app.flags.DEFINE_string("DISTANCES_PATH"           , "./data/CIL/overlap/dst/", "path to distances.")
+#tf.app.flags.DEFINE_string("DISTANCES_PATH"           , "./data/toy_data/dst/", "path to distances.")
+
 tf.app.flags.DEFINE_string("WEIGHTS_PATH"             , "./rsrcnn/vgg16_c1-c13_weights", "path to weights.")
 tf.app.flags.DEFINE_string("train_dir"                , "./rsrcnn/train_dir/", "Directory to save trained model.")
 tf.app.flags.DEFINE_string("output_dir"               , "./rsrcnn/outputs/", "Directory to save output images.")
@@ -645,7 +653,6 @@ def read_data():
 	images_with_canny = []
 	for index, image in enumerate(images):
 		image_with_canny = np.concatenate((image, cannies[index]), axis = 2)
-		print(image_with_canny.shape)
 		images_with_canny.append(image_with_canny)
 
 	print("Reading labels")
